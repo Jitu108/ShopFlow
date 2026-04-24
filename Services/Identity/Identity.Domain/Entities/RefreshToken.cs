@@ -12,6 +12,16 @@ public class RefreshToken
 
     private RefreshToken() { }
 
+    // Used by mocks and EF Core materialisation — not for application code
+    public RefreshToken(string token, DateTime expiresAt, Guid userId)
+    {
+        Id        = Guid.NewGuid();
+        Token     = token;
+        ExpiresAt = expiresAt;
+        CreatedAt = DateTime.UtcNow;
+        UserId    = userId;
+    }
+
     public static RefreshToken Create(Guid userId, DateTime expiresAt)
     {
         return new RefreshToken
