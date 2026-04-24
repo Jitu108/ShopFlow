@@ -1,0 +1,39 @@
+# Environment secrets — never commit
+.env
+
+# .NET
+bin/
+obj/
+*.user
+*.suo
+.vs/
+*.log
+*.nupkg
+TestResults/
+coverage/
+*.trx
+
+# Entity Framework migrations (keep Migrations/ folder but ignore snapshots if preferred)
+# Uncomment below only if you want to regenerate migrations from scratch each time
+# */Migrations/
+
+# Docker
+docker-compose.override.yml
+
+# Angular
+ClientApp/node_modules/
+ClientApp/dist/
+ClientApp/.angular/
+ClientApp/.env
+
+# Rider / JetBrains
+.idea/
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
+
+# Rider run configs
+*.run.xml

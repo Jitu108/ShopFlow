@@ -1,0 +1,212 @@
+version: '3.9'
+
+services:
+
+  # ─── Infrastructure ────────────────────────────────────────────────────────
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: shopflow-sqlserver
+    environment:
+      SA_PASSWORD: ${SQL_SA_PASSWORD}
+      ACCEPT_EULA: Y
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD", "/opt/mssql-tools/bin/sqlcmd", "-S", "localhost", "-U", "sa", "-P", "${SQL_SA_PASSWORD}", "-Q", "SELECT 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - shopflow-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: shopflow-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - shopflow-net
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: shopflow-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASS}
+    ports:
+      - "5672:5672"    # AMQP
+      - "15672:15672"  # Management UI
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - shopflow-net
+
+  # ─── API Gateway ───────────────────────────────────────────────────────────
+
+  # gateway:
+  #   build: ./Gateway
+  #   container_name: shopflow-gateway
+  #   ports:
+  #     - "5000:80"
+  #   environment:
+  #     - JwtSettings__Secret=${JWT_SECRET}
+  #   depends_on:
+  #     identity-service:
+  #       condition: service_healthy
+  #     product-service:
+  #       condition: service_healthy
+  #     order-service:
+  #       condition: service_healthy
+  #     cart-service:
+  #       condition: service_healthy
+  #   networks:
+  #     - shopflow-net
+
+  # ─── Microservices ─────────────────────────────────────────────────────────
+
+  # identity-service:
+  #   build: ./Services/Identity
+  #   container_name: shopflow-identity
+  #   ports:
+  #     - "5001:80"
+  #   environment:
+  #     - ConnectionStrings__Default=Server=sqlserver;Database=IdentityDb;User Id=sa;Password=${SQL_SA_PASSWORD};TrustServerCertificate=True
+  #     - JwtSettings__Secret=${JWT_SECRET}
+  #     - JwtSettings__Issuer=ShopFlow
+  #     - JwtSettings__Audience=ShopFlow
+  #     - JwtSettings__ExpiryMinutes=60
+  #   depends_on:
+  #     sqlserver:
+  #       condition: service_healthy
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+  #     interval: 15s
+  #     timeout: 5s
+  #     retries: 3
+  #   networks:
+  #     - shopflow-net
+
+  # product-service:
+  #   build: ./Services/Product
+  #   container_name: shopflow-product
+  #   ports:
+  #     - "5002:80"
+  #   environment:
+  #     - ConnectionStrings__Default=Server=sqlserver;Database=ProductDb;User Id=sa;Password=${SQL_SA_PASSWORD};TrustServerCertificate=True
+  #     - Redis__ConnectionString=redis:6379
+  #     - JwtSettings__Secret=${JWT_SECRET}
+  #   depends_on:
+  #     sqlserver:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_healthy
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+  #     interval: 15s
+  #     timeout: 5s
+  #     retries: 3
+  #   networks:
+  #     - shopflow-net
+
+  # order-service:
+  #   build: ./Services/Order
+  #   container_name: shopflow-order
+  #   ports:
+  #     - "5003:80"
+  #   environment:
+  #     - ConnectionStrings__Default=Server=sqlserver;Database=OrderDb;User Id=sa;Password=${SQL_SA_PASSWORD};TrustServerCertificate=True
+  #     - RabbitMQ__Host=rabbitmq
+  #     - RabbitMQ__User=${RABBITMQ_USER}
+  #     - RabbitMQ__Pass=${RABBITMQ_PASS}
+  #     - JwtSettings__Secret=${JWT_SECRET}
+  #   depends_on:
+  #     sqlserver:
+  #       condition: service_healthy
+  #     rabbitmq:
+  #       condition: service_healthy
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+  #     interval: 15s
+  #     timeout: 5s
+  #     retries: 3
+  #   networks:
+  #     - shopflow-net
+
+  # cart-service:
+  #   build: ./Services/Cart
+  #   container_name: shopflow-cart
+  #   ports:
+  #     - "5004:80"
+  #   environment:
+  #     - Redis__ConnectionString=redis:6379
+  #     - RabbitMQ__Host=rabbitmq
+  #     - RabbitMQ__User=${RABBITMQ_USER}
+  #     - RabbitMQ__Pass=${RABBITMQ_PASS}
+  #     - JwtSettings__Secret=${JWT_SECRET}
+  #   depends_on:
+  #     redis:
+  #       condition: service_healthy
+  #     rabbitmq:
+  #       condition: service_healthy
+  #   healthcheck:
+  #     test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+  #     interval: 15s
+  #     timeout: 5s
+  #     retries: 3
+  #   networks:
+  #     - shopflow-net
+
+  # notification-service:
+  #   build: ./Services/Notification
+  #   container_name: shopflow-notification
+  #   environment:
+  #     - RabbitMQ__Host=rabbitmq
+  #     - RabbitMQ__User=${RABBITMQ_USER}
+  #     - RabbitMQ__Pass=${RABBITMQ_PASS}
+  #     - Email__SmtpHost=${SMTP_HOST}
+  #     - Email__SmtpPort=${SMTP_PORT}
+  #     - Email__From=${SMTP_FROM}
+  #     - Email__Password=${SMTP_PASSWORD}
+  #   depends_on:
+  #     rabbitmq:
+  #       condition: service_healthy
+  #   networks:
+  #     - shopflow-net
+
+  # ─── Frontend ──────────────────────────────────────────────────────────────
+
+  # angular-ui:
+  #   build: ./ClientApp
+  #   container_name: shopflow-ui
+  #   ports:
+  #     - "4200:80"
+  #   networks:
+  #     - shopflow-net
+
+# ─── Volumes & Networks ──────────────────────────────────────────────────────
+
+volumes:
+  sqlserver-data:
+  redis-data:
+  rabbitmq-data:
+
+networks:
+  shopflow-net:
+    driver: bridge
