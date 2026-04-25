@@ -1,6 +1,7 @@
 using Identity.Application.DTOs;
 using Identity.Application.Interfaces;
 using Identity.Domain.Entities;
+using Identity.Domain.Exceptions;
 using MediatR;
 
 namespace Identity.Application.Commands;
@@ -19,7 +20,7 @@ public class RegisterUserCommandHandler : IRequestHandler<RegisterUserCommand, A
     public async Task<AuthResponse> Handle(RegisterUserCommand command, CancellationToken ct)
     {
         if (await _userRepository.ExistsByEmailAsync(command.Email, ct))
-            throw new InvalidOperationException($"Email '{command.Email}' is already registered.");
+            throw new DuplicateEmailException(command.Email);
 
         var user = ApplicationUser.Create(command.Email, command.DisplayName);
 
