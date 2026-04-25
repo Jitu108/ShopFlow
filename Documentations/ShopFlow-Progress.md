@@ -30,7 +30,7 @@
 16. [TDD Approach](#16-tdd-approach)
 17. [Implementation Progress](#17-implementation-progress)
     - [Phase 1 — Infrastructure Foundation](#phase-1--infrastructure-foundation)
-    - [Phase 2 — Identity Service Scaffold](#phase-2--identity-service-scaffold)
+    - [Phase 2 — Identity Service](#phase-2--identity-service)
 18. [Project Dependency Wiring](#18-project-dependency-wiring)
 19. [Issues Found and Fixed](#19-issues-found-and-fixed)
 20. [Build Status](#20-build-status)
@@ -232,7 +232,7 @@ Orders trigger async workflows — on placement, an event is published to Rabbit
 
 ## 5. System Architecture
 
-```
+```text
 ┌─────────────────────────────────────┐
 │            Angular SPA              │
 │  CustomerModule   │   VendorModule  │
@@ -304,7 +304,7 @@ Identity  Product   Order      │         │
 
 #### Domain Model
 
-```
+```text
 ApplicationUser : IdentityUser
   ├── Id (Guid)
   ├── Email (string)
@@ -346,7 +346,7 @@ builder.Services.AddAuthorization(options =>
 
 #### Database: `IdentityDb`
 
-```
+```text
 AspNetUsers           (ASP.NET Identity scaffolded)
 AspNetRoles
 AspNetUserRoles
@@ -372,7 +372,7 @@ RefreshTokens         (Id, UserId FK, Token, ExpiresAt, CreatedAt)
 
 **Responsibility:** Vendor catalog — create, update, delete listings; customer browse; inventory tracking.
 
-#### Endpoints
+#### Product Service Endpoints
 
 | Method | Path | Auth | Description |
 | --- | --- | --- | --- |
@@ -383,9 +383,9 @@ RefreshTokens         (Id, UserId FK, Token, ExpiresAt, CreatedAt)
 | `DELETE` | `/api/products/{id}` | `[RequireVendor]` | Delete own product |
 | `GET` | `/api/vendors/{id}/products` | `[RequireVendor]` | List vendor's own products |
 
-#### Domain Model
+#### Product Domain Model
 
-```
+```text
 Product
   ├── Id (Guid)
   ├── VendorId (Guid FK → ApplicationUser)
@@ -404,7 +404,7 @@ Category
   └── Products[ ]
 ```
 
-#### Commands & Queries
+#### Product Commands & Queries
 
 | Type | Name | Description |
 | --- | --- | --- |
@@ -424,7 +424,7 @@ Category
 
 #### Database: `ProductDb`
 
-```
+```text
 Categories   (Id, Name)
 Products     (Id, VendorId, CategoryId FK, Name, Description,
               Price, StockQuantity, IsActive, CreatedAt, UpdatedAt)
@@ -436,7 +436,7 @@ Products     (Id, VendorId, CategoryId FK, Name, Description,
 
 **Responsibility:** Checkout, order lifecycle (`Pending → Confirmed → Shipped → Delivered`), order history.
 
-#### Endpoints
+#### Order Service Endpoints
 
 | Method | Path | Auth | Description |
 | --- | --- | --- | --- |
@@ -446,9 +446,9 @@ Products     (Id, VendorId, CategoryId FK, Name, Description,
 | `PUT` | `/api/orders/{id}/confirm` | `[Authorize]` | Confirm order (payment stub) |
 | `GET` | `/api/admin/orders` | `[RequireAdmin]` | Get all platform orders |
 
-#### Domain Model
+#### Order Domain Model
 
-```
+```text
 Order (Aggregate Root)
   ├── Id (Guid)
   ├── CustomerId (Guid FK)
@@ -488,7 +488,7 @@ public record OrderShippedEvent(
 
 #### Database: `OrderDb`
 
-```
+```text
 Orders      (Id, CustomerId, Status, TotalAmount, CreatedAt, UpdatedAt)
 OrderItems  (Id, OrderId FK, ProductId, ProductName, UnitPrice, Quantity)
 ```
@@ -499,7 +499,7 @@ OrderItems  (Id, OrderId FK, ProductId, ProductName, UnitPrice, Quantity)
 
 **Responsibility:** Session-scoped shopping basket. No SQL — entirely Redis-backed.
 
-#### Endpoints
+#### Cart Service Endpoints
 
 | Method | Path | Auth | Description |
 | --- | --- | --- | --- |
@@ -511,7 +511,7 @@ OrderItems  (Id, OrderId FK, ProductId, ProductName, UnitPrice, Quantity)
 
 #### Redis Storage
 
-```
+```text
 Key:    cart:{userId}        (Redis Hash)
 Field:  {productId}          (string)
 Value:  {quantity}           (string/int)
@@ -570,7 +570,7 @@ public class OrderPlacedConsumer : IConsumer<OrderPlacedEvent>
 **Technology:** Ocelot (.NET)  
 **Responsibility:** Single entry point — route requests to downstream services, enforce JWT auth, rate limit.
 
-#### Routing Configuration (`ocelot.json`)
+### Routing Configuration (`ocelot.json`)
 
 ```json
 {
@@ -602,7 +602,7 @@ public class OrderPlacedConsumer : IConsumer<OrderPlacedEvent>
 }
 ```
 
-#### Gateway Responsibilities
+### Gateway Responsibilities
 
 | Concern | Implementation |
 | --- | --- |
@@ -619,14 +619,14 @@ public class OrderPlacedConsumer : IConsumer<OrderPlacedEvent>
 **Technology:** RabbitMQ 3 + MassTransit  
 **Pattern:** Publish/Subscribe via exchanges and queues
 
-#### Exchange & Queue Map
+### Exchange & Queue Map
 
 | Exchange | Queue | Publisher | Consumers |
 | --- | --- | --- | --- |
 | `order.placed` | `order-placed-queue` | Order Service | Notification Service, Cart Service |
 | `order.shipped` | `order-shipped-queue` | Order Service | Notification Service |
 
-#### MassTransit Configuration (per consuming service)
+### MassTransit Configuration (per consuming service)
 
 ```csharp
 builder.Services.AddMassTransit(x =>
@@ -651,7 +651,7 @@ builder.Services.AddMassTransit(x =>
 });
 ```
 
-#### Fan-Out Design
+### Fan-Out Design
 
 `OrderPlacedEvent` is consumed by **two independent queues** — Notification and Cart each have their own `ReceiveEndpoint`. This ensures one consumer's failure does not block the other.
 
@@ -662,7 +662,7 @@ builder.Services.AddMassTransit(x =>
 **Technology:** Redis 7 + StackExchange.Redis  
 **Two distinct use cases:**
 
-#### 9.1 Product Catalog Cache (cache-aside pattern)
+### 9.1 Product Catalog Cache (cache-aside pattern)
 
 ```csharp
 // Read
@@ -682,7 +682,7 @@ return products;
 | `product:catalog` | 10 min sliding | Any product write |
 | `product:{id}` | 15 min sliding | Update or delete of that product |
 
-#### 9.2 Cart Storage (Redis Hash)
+### 9.2 Cart Storage (Redis Hash)
 
 ```csharp
 // Add/update item
@@ -706,26 +706,26 @@ await _db.KeyDeleteAsync($"cart:{userId}");
 
 Three independent SQL Server databases — one per domain service. Each has its own EF Core `DbContext` and runs its own migrations independently.
 
-#### IdentityDb
+### IdentityDb
 
-```
+```text
 AspNetUsers      (ASP.NET Identity scaffolded — Id, Email, PasswordHash, ...)
 AspNetRoles      (Id, Name, NormalizedName)
 AspNetUserRoles  (UserId FK, RoleId FK)
 RefreshTokens    (Id, UserId FK, Token, ExpiresAt, CreatedAt)
 ```
 
-#### ProductDb
+### ProductDb
 
-```
+```text
 Categories  (Id, Name)
 Products    (Id, VendorId, CategoryId FK, Name, Description,
              Price, StockQuantity, IsActive, CreatedAt, UpdatedAt)
 ```
 
-#### OrderDb
+### OrderDb
 
-```
+```text
 Orders      (Id, CustomerId, Status, TotalAmount, CreatedAt, UpdatedAt)
 OrderItems  (Id, OrderId FK, ProductId, ProductName, UnitPrice, Quantity)
 ```
@@ -738,7 +738,7 @@ OrderItems  (Id, OrderId FK, ProductId, ProductName, UnitPrice, Quantity)
 
 Each microservice follows the same 4-layer structure. Dependency direction always flows inward — outer layers know about inner layers; inner layers know nothing about outer ones.
 
-```
+```text
 ServiceName/
 ├── Domain/
 │   ├── Entities/        Pure C# classes — no framework deps
@@ -764,9 +764,9 @@ ServiceName/
     └── Program.cs
 ```
 
-#### Dependency Direction Rule
+### Dependency Direction Rule
 
-```
+```text
 API  →  Infrastructure  →  Application  →  Domain
      ↘                  ↗
           (API also refs Application directly)
@@ -785,7 +785,7 @@ API  →  Infrastructure  →  Application  →  Domain
 
 Commands mutate state. Queries return data. They are never mixed in the same handler.
 
-#### Command Example — PlaceOrderCommand
+### Command Example — PlaceOrderCommand
 
 ```csharp
 public record PlaceOrderCommand(
@@ -885,7 +885,7 @@ Neither level alone is sufficient — both must pass.
 
 ### Module Structure
 
-```
+```text
 src/app/
 ├── core/
 │   ├── auth/        JwtInterceptor, TokenRefreshInterceptor, AuthGuard, TokenService
@@ -965,7 +965,7 @@ builder.Services.AddHealthChecks()
 
 ### 15.4 Connection String Pattern (per service)
 
-```
+```text
 Server=sqlserver;Database={ServiceDb};User Id=sa;Password=${SQL_SA_PASSWORD};TrustServerCertificate=True
 ```
 
@@ -988,7 +988,8 @@ Server=sqlserver;Database={ServiceDb};User Id=sa;Password=${SQL_SA_PASSWORD};Tru
 
 ### 16.3 Layer-by-Layer TDD Strategy
 
-**Domain — Pure unit tests (no mocks):**
+#### Domain layer example
+
 ```csharp
 [Fact]
 public void Order_Create_ShouldCalculateTotalFromItems()
@@ -1005,7 +1006,8 @@ public void Order_Create_ShouldCalculateTotalFromItems()
 }
 ```
 
-**Application — Unit tests with mocked interfaces:**
+#### Application layer example
+
 ```csharp
 [Fact]
 public async Task GetProductByIdHandler_WhenCacheHit_ShouldNotCallRepository()
@@ -1020,7 +1022,8 @@ public async Task GetProductByIdHandler_WhenCacheHit_ShouldNotCallRepository()
 }
 ```
 
-**Infrastructure — Integration tests with Testcontainers:**
+#### Infrastructure layer example
+
 ```csharp
 public class ProductRepositoryTests : IAsyncLifetime
 {
@@ -1040,7 +1043,8 @@ public class ProductRepositoryTests : IAsyncLifetime
 }
 ```
 
-**API — WebApplicationFactory tests:**
+#### API layer example
+
 ```csharp
 [Fact]
 public async Task CreateProduct_WithoutVendorRole_ShouldReturn403()
@@ -1055,7 +1059,7 @@ public async Task CreateProduct_WithoutVendorRole_ShouldReturn403()
 
 ### 16.4 TDD Order Per Service (inside-out)
 
-```
+```text
 1. Domain entity tests       → write test → implement entity
 2. Validator tests           → write test → implement validator
 3. ValidationBehavior test   → write test → implement behavior
@@ -1066,7 +1070,7 @@ public async Task CreateProduct_WithoutVendorRole_ShouldReturn403()
 
 ### 16.5 Test Project Naming Convention
 
-```
+```text
 {Service}.Domain.Tests           ← pure unit, no mocks
 {Service}.Application.Tests      ← mocked interfaces (NSubstitute)
 {Service}.Infrastructure.Tests   ← Testcontainers (real DB/Redis/RabbitMQ)
@@ -1079,7 +1083,7 @@ public async Task CreateProduct_WithoutVendorRole_ShouldReturn403()
 
 ### Phase 1 — Infrastructure Foundation
 
-**Status: ✅ Complete**
+Status: ✅ Complete
 
 #### What was done
 
@@ -1102,11 +1106,11 @@ docker compose ps     # all three should show "healthy"
 
 ---
 
-### Phase 2 — Identity Service Scaffold
+### Phase 2 — Identity Service
 
-Status: 🔄 In progress — Domain + Application layers complete, Infrastructure & API pending
+Status: ✅ Complete — pending EF Core migrations and docker-compose wiring (Steps 9–10)
 
-#### What was done
+#### Phase 2 deliverables
 
 8 projects created under `Services/Identity/`, added to `ShopFlow.sln`, project references wired, all issues fixed, solution builds cleanly.
 
@@ -1125,15 +1129,15 @@ Status: 🔄 In progress — Domain + Application layers complete, Infrastructur
 
 #### TDD Implementation Order
 
-```
+```text
 Step 1  ✅ Wrote failing tests in Identity.Domain.Tests (ApplicationUser, RefreshToken)
 Step 2  ✅ Implemented Domain entities (ApplicationUser, RefreshToken), enums, exceptions
 Step 3  ✅ Wrote failing tests for validators, behaviors, handlers in Identity.Application.Tests
 Step 4  ✅ Implemented Application layer — commands/handlers, validators, behaviors, interfaces, DTOs
-Step 5  → Write Testcontainers tests in Identity.Infrastructure.Tests
-Step 6  → Implement TokenService, RefreshTokenRepository in Identity.Infrastructure
-Step 7  → Write WebApplicationFactory tests in Identity.Api.Tests
-Step 8  → Implement controllers, middleware, Program.cs in Identity.Api
+Step 5  ✅ Wrote Testcontainers tests in Identity.Infrastructure.Tests (TokenService, RefreshTokenRepository)
+Step 6  ✅ Implemented Infrastructure layer — TokenService, AppDbContext, RefreshTokenRepository, JwtSettings
+Step 7  ✅ Wrote WebApplicationFactory tests in Identity.Api.Tests
+Step 8  ✅ Implemented API layer — controllers, ExceptionHandlingMiddleware, Program.cs
 Step 9  → Add EF Core migrations, run against IdentityDb
 Step 10 → Uncomment identity-service block in docker-compose.yml
 ```
@@ -1162,11 +1166,57 @@ Step 10 → Uncomment identity-service block in docker-compose.yml
 | `RegisterUserCommandValidatorTests` | All five password complexity rules, blank/null email, malformed email, blank/oversized display name |
 | `LoginCommandValidatorTests` | Blank/null email, malformed email, blank/null password |
 
+#### Domain change
+
+Added `DuplicateEmailException : DomainException`; `RegisterUserCommandHandler` now throws it instead of `InvalidOperationException`, giving `ExceptionHandlingMiddleware` a dedicated type to map to HTTP 409.
+
+#### Infrastructure Layer — Implemented (Steps 5–6)
+
+| Deliverable | Detail |
+| --- | --- |
+| `JwtSettings` | Config POCO binding `Secret`, `Issuer`, `Audience`, `ExpiryMinutes` from `"JwtSettings"` section |
+| `TokenService` | JWT with `userId`, `email`, `role`, `emailVerified` claims; 7-day refresh tokens saved via `IRefreshTokenRepository` |
+| `AppDbContext` | Minimal `DbContext` — `RefreshTokens` DbSet, unique index on `Token`, max length 500; ASP.NET Identity tables deferred |
+| `RefreshTokenRepository` | EF Core implementation — `GetByToken`, `Save`, `Revoke` (no-op on unknown token) |
+| `UserRepository` | Stub — all methods throw `NotImplementedException` pending `UserManager<ApplicationUser>` wiring |
+| NuGet added | `Microsoft.AspNetCore.Authentication.JwtBearer 10.0.0`, `Microsoft.AspNetCore.Identity.EntityFrameworkCore 10.0.0`, `Microsoft.EntityFrameworkCore.SqlServer 10.0.0`, `Microsoft.Extensions.Options 10.0.0` |
+
+#### Infrastructure Tests — Implemented (Step 5)
+
+| Test class | Scenarios covered |
+| --- | --- |
+| `TokenServiceTests` (9 tests) | `userId`, `email`, `role`, `emailVerified` claims, three-part JWT, `SaveAsync` called once, non-empty token, uniqueness across two calls, correct `UserId` |
+| `RefreshTokenRepositoryTests` (6 Testcontainers tests) | Save+get roundtrip, persisted `UserId` and `ExpiresAt`, unknown token returns null, revoke+get returns null, revoke of non-existent does not throw |
+
+NuGet added: `FluentAssertions 6.12.2`, `NSubstitute 5.3.0`, `Testcontainers.MsSql 4.4.0`, `Microsoft.EntityFrameworkCore.SqlServer 10.0.0`, `Microsoft.Extensions.Options 10.0.0`
+
+#### API Layer — Implemented (Step 8)
+
+| Deliverable | Detail |
+| --- | --- |
+| `AuthController` | `POST /api/auth/register` (201), `POST /api/auth/login` (200), `POST /api/auth/refresh` (200), `POST /api/auth/logout` (204, `[Authorize]`) |
+| `UsersController` | `GET /api/users/me` (`[Authorize]`), `POST /api/admin/users/{id}/assign-role` (`[RequireAdmin]`) |
+| `ExceptionHandlingMiddleware` | Maps `ValidationException` → 400, `InvalidCredentialsException` → 401, `NotFoundException` → 404, `DuplicateEmailException` → 409, `DomainException` → 400, unhandled → 500 |
+| `Program.cs` | Full DI wiring — `JwtSettings`, `AppDbContext`, repositories/services, MediatR, `ValidationBehavior`, JWT Bearer (lazy `IOptions` for test override), authorization policies, SQL Server health check |
+| NuGet added | `AspNetCore.HealthChecks.SqlServer 9.0.0`, `FluentValidation.DependencyInjectionExtensions 11.11.0`, `MediatR 12.5.0`, `Serilog.AspNetCore 9.0.0` |
+
+#### API Tests — Implemented (Step 7)
+
+| Deliverable | Detail |
+| --- | --- |
+| `IdentityApiFactory` | Swaps `AppDbContext` for EF Core InMemory; replaces `IUserRepository` and `IRefreshTokenRepository` with singleton fakes; injects deterministic JWT settings |
+| `FakeUserRepository` | In-memory `Dictionary<Guid, (User, Password)>` with `Seed()` helper |
+| `FakeRefreshTokenRepository` | In-memory `Dictionary<string, RefreshToken>` |
+| `JwtTokenHelper` | Generates signed test JWTs matching the production claim structure |
+| `AuthControllerTests` (9 tests) | Register 201 + tokens in body, duplicate 409, invalid input 400, login 200 + tokens, wrong password 401, unknown email 401, refresh valid 200, refresh invalid 401, logout 204 |
+| `UsersControllerTests` (5 tests) | getMe without token 401, with valid JWT 200, profile body correct, assignRole as Customer 403, as Admin 200 |
+| NuGet added | `FluentAssertions 6.12.2`, `Microsoft.AspNetCore.Mvc.Testing 10.0.0`, `Microsoft.EntityFrameworkCore.InMemory 10.0.0` |
+
 ---
 
 ## 18. Project Dependency Wiring
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                        Identity Service                          │
 │                                                                  │
@@ -1200,7 +1250,7 @@ Step 10 → Uncomment identity-service block in docker-compose.yml
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-#### Reference Table
+### Reference Table
 
 | Project | References |
 | --- | --- |
@@ -1245,7 +1295,7 @@ All 8 Identity Service projects build cleanly. No warnings.
 
 ## 21. Repository Structure
 
-```
+```text
 ShopFlow/
 ├── Services/
 │   ├── Identity/
@@ -1313,9 +1363,9 @@ These are intentional simplifications to keep the project mid-complexity rather 
 
 ## 24. What Comes Next
 
-### Immediate — Complete Phase 2 (Identity Service Implementation)
+### Immediate — Finish Phase 2 (Steps 9–10)
 
-Steps 1–4 are complete. Continuing from Step 5:
+Steps 1–8 are complete. Two wiring steps remain before the Identity Service is fully runnable:
 
 | Step | Target | Task |
 | --- | --- | --- |
@@ -1323,12 +1373,12 @@ Steps 1–4 are complete. Continuing from Step 5:
 | ~~2~~ | ~~`Identity.Domain`~~ | ~~Implement entities to pass domain tests~~ |
 | ~~3~~ | ~~`Identity.Application.Tests`~~ | ~~Write failing tests for validators, behaviors, handlers~~ |
 | ~~4~~ | ~~`Identity.Application`~~ | ~~Implement validators, pipeline behaviors, command handlers~~ |
-| 5 | `Identity.Infrastructure.Tests` | Write Testcontainers tests for `TokenService`, `RefreshTokenRepository` |
-| 6 | `Identity.Infrastructure` | Implement EF Core DbContext, repositories, JWT TokenService |
-| 7 | `Identity.Api.Tests` | Write `WebApplicationFactory` tests for all endpoints |
-| 8 | `Identity.Api` | Implement controllers, `ExceptionHandlingMiddleware`, `Program.cs` |
-| 9 | Infrastructure | Run EF Core migrations, confirm `IdentityDb` is created |
-| 10 | `docker-compose.yml` | Uncomment `identity-service` block |
+| ~~5~~ | ~~`Identity.Infrastructure.Tests`~~ | ~~Write Testcontainers tests for `TokenService`, `RefreshTokenRepository`~~ |
+| ~~6~~ | ~~`Identity.Infrastructure`~~ | ~~Implement EF Core DbContext, repositories, JWT TokenService~~ |
+| ~~7~~ | ~~`Identity.Api.Tests`~~ | ~~Write `WebApplicationFactory` tests for all endpoints~~ |
+| ~~8~~ | ~~`Identity.Api`~~ | ~~Implement controllers, `ExceptionHandlingMiddleware`, `Program.cs`~~ |
+| 9 | `Identity.Infrastructure` | Wire `UserRepository` to `UserManager<ApplicationUser>`; run EF Core migrations; confirm `IdentityDb` is created |
+| 10 | `docker-compose.yml` | Uncomment `identity-service` block; verify service starts healthy |
 
 ### Upcoming Phases
 
