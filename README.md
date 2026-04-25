@@ -28,7 +28,7 @@ Vendors register, list products, and track orders. Customers browse the catalog,
 
 ## Architecture
 
-```
+```text
 ┌─────────────────────────────────────┐
 │            Angular SPA              │
 │  CustomerModule   │   VendorModule  │
@@ -86,6 +86,37 @@ Identity  Product   Order      │
 
 ---
 
+## Identity Service
+
+The first service to be fully implemented. All four layers are complete and covered by tests.
+
+### Endpoints
+
+| Method | Path | Auth | Response |
+| --- | --- | --- | --- |
+| `POST` | `/api/auth/register` | None | 201 — `AuthResponse` |
+| `POST` | `/api/auth/login` | None | 200 — `AuthResponse` |
+| `POST` | `/api/auth/refresh` | None | 200 — `AuthResponse` |
+| `POST` | `/api/auth/logout` | `[Authorize]` | 204 |
+| `GET` | `/api/users/me` | `[Authorize]` | 200 — `UserProfileDto` |
+| `POST` | `/api/admin/users/{id}/assign-role` | `[RequireAdmin]` | 200 |
+
+### Test coverage
+
+| Project | Type | Tests |
+| --- | --- | --- |
+| `Identity.Domain.Tests` | Pure unit | Entity defaults, refresh token expiry |
+| `Identity.Application.Tests` | Unit (NSubstitute) | All command handlers, validators, pipeline behavior |
+| `Identity.Infrastructure.Tests` | Unit + Testcontainers | `TokenService` JWT claims, `RefreshTokenRepository` against real SQL Server |
+| `Identity.Api.Tests` | WebApplicationFactory | All endpoints — happy paths, auth failures, validation errors |
+
+### What remains before the service is fully runnable
+
+- Wire `UserRepository` to `UserManager<ApplicationUser>` and run EF Core migrations (Step 9)
+- Uncomment `identity-service` block in `docker-compose.yml` (Step 10)
+
+---
+
 ## Getting Started
 
 ### Prerequisites
@@ -126,10 +157,10 @@ dotnet test ShopFlow.sln
 
 ## Project Structure
 
-```
+```text
 ShopFlow/
 ├── Services/
-│   ├── Identity/               Phase 2 — scaffolded
+│   ├── Identity/               Phase 2 — ✅ complete (migrations + docker pending)
 │   │   ├── Identity.Domain/
 │   │   ├── Identity.Application/
 │   │   ├── Identity.Infrastructure/
@@ -181,13 +212,13 @@ ShopFlow/
 
 This project is built using **Test-Driven Development (TDD)** — tests are written before implementation, following an inside-out layer order:
 
-```
+```text
 Domain Tests → Application Tests → Infrastructure Tests → API Tests
 ```
 
 Each microservice follows **Clean Architecture** with strict dependency direction:
 
-```
+```text
 API → Infrastructure → Application → Domain
 ```
 
@@ -200,7 +231,7 @@ See [Documentations/ShopFlow-TDD-Guide.md](Documentations/ShopFlow-TDD-Guide.md)
 | Phase | Scope | Status |
 | --- | --- | --- |
 | Phase 1 | Infrastructure — Docker Compose, folder structure | ✅ Complete |
-| Phase 2 | Identity Service | 🔧 Scaffolded — implementation in progress |
+| Phase 2 | Identity Service | ✅ Complete — EF Core migrations + docker-compose wiring pending |
 | Phase 3 | Product Service | ⏳ Pending |
 | Phase 4 | Cart Service | ⏳ Pending |
 | Phase 5 | Order + Notification Services | ⏳ Pending |

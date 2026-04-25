@@ -214,7 +214,7 @@ Tests:
 4. ✅ RegisterUserHandler test   → happy path + duplicate email
 5. ✅ LoginHandler test          → valid creds + wrong creds
 6. ✅ RefreshTokenHandler test   → rotation + expiry + unknown token
-7.    TokenService test          → JWT claims, refresh uniqueness (Testcontainers)
-8.    Repository test            → RefreshTokenRepository (Testcontainers)
-9.    API endpoint tests         → WebApplicationFactory
+7. ✅ TokenService test          → JWT claims, refresh uniqueness (NSubstitute + unit)
+8. ✅ Repository test            → RefreshTokenRepository (Testcontainers)
+9. ✅ API endpoint tests         → WebApplicationFactory
 ```
