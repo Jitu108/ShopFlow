@@ -34,34 +34,42 @@ Services/Identity/
 
 ## Application Layer
 
-**Commands + Handlers:**
-| Command | Handler responsibility |
-|---|---|
-| `RegisterUserCommand` | Create user via `UserManager`, assign default `Customer` role |
-| `LoginCommand` | Validate credentials, issue JWT + refresh token |
-| `RefreshTokenCommand` | Validate refresh token, rotate it, issue new JWT |
-| `LogoutCommand` | Invalidate refresh token in DB |
-| `AssignRoleCommand` | Admin-only role assignment |
+**Commands + Handlers:** ✅ implemented
+
+| Command | Handler responsibility | Status |
+| --- | --- | --- |
+| `RegisterUserCommand` | Checks for duplicate email, creates user via `IUserRepository`, issues JWT + refresh token | ✅ Done |
+| `LoginCommand` | Validates credentials via `IUserRepository`, throws `InvalidCredentialsException` on any failure, issues tokens | ✅ Done |
+| `RefreshTokenCommand` | Validates + revokes old token via `IRefreshTokenRepository`, issues new JWT + refresh token pair | ✅ Done |
+| `LogoutCommand` | Invalidate refresh token in DB | ⬜ Pending |
+| `AssignRoleCommand` | Admin-only role assignment | ⬜ Pending |
 
 **Queries + Handlers:**
-| Query | Handler responsibility |
-|---|---|
-| `GetCurrentUserQuery` | Return profile from claims |
 
-**DTOs:**
-- `RegisterRequest`, `LoginRequest`, `AuthResponse` (JWT + refresh token), `UserProfileDto`
+| Query | Handler responsibility | Status |
+| --- | --- | --- |
+| `GetCurrentUserQuery` | Return profile from claims | ⬜ Pending |
 
-**Interfaces:**
-- `ITokenService` — JWT generation + validation
-- `IRefreshTokenRepository`
+**DTOs:** ✅ implemented
 
-**Validators (FluentValidation):**
-- `RegisterUserCommandValidator` — email format, password strength, required fields
-- `LoginCommandValidator`
+- `AuthResponse` — `AccessToken`, `RefreshToken`, `Email`, `DisplayName`, `Role`
+- `UserProfileDto` — `Id`, `Email`, `DisplayName`, `Role`, `IsEmailVerified`
 
-**Pipeline Behaviors:**
-- `ValidationBehavior<TRequest, TResponse>`
-- `LoggingBehavior<TRequest, TResponse>`
+**Interfaces:** ✅ implemented
+
+- `IUserRepository` — `ExistsByEmail`, `Create`, `FindByEmail`, `GetById`, `CheckPassword`, `Update`
+- `ITokenService` — `GenerateJwtToken`, `GenerateRefreshTokenAsync`
+- `IRefreshTokenRepository` — `GetByToken`, `Save`, `Revoke`
+
+**Validators (FluentValidation):** ✅ implemented
+
+- `RegisterUserCommandValidator` — email format, strong password (≥8 chars, upper, lower, digit, special), display name required and ≤100 chars
+- `LoginCommandValidator` — email format, password required
+
+**Pipeline Behaviors:** ✅ partially implemented
+
+- `ValidationBehavior<TRequest, TResponse>` — runs all `IValidator<TRequest>` instances; throws `ValidationException` before the handler if any failures exist ✅ Done
+- `LoggingBehavior<TRequest, TResponse>` ⬜ Pending
 
 ---
 
@@ -110,21 +118,27 @@ POST   /api/admin/users/{id}/assign-role   [RequireAdmin]
 
 ## Test Projects
 
-**Identity.Domain.Tests** — pure unit, no mocks:
+**Identity.Domain.Tests** — pure unit, no mocks: ✅ implemented
+
 - `ApplicationUser` property defaults
 - `RefreshToken` expiry logic
 
-**Identity.Application.Tests** — mocked interfaces:
-- `RegisterUserCommandHandler` — duplicate email returns error
-- `LoginCommandHandler` — wrong password throws, correct password returns `AuthResponse`
-- `RefreshTokenCommandHandler` — expired token throws, valid token rotates
-- `ValidationBehavior` — invalid `RegisterRequest` throws `ValidationException`
+**Identity.Application.Tests** — mocked interfaces (NSubstitute + FluentAssertions): ✅ implemented
 
-**Identity.Infrastructure.Tests** — Testcontainers (real SQL Server):
+- `RegisterUserCommandHandlerTests` — happy path, duplicate email guard, `CreateAsync` call count
+- `LoginCommandHandlerTests` — valid credentials, unknown email, wrong password
+- `RefreshTokenCommandHandlerTests` — happy path + old token revocation, expired token, unknown token
+- `ValidationBehaviorTests` — valid request calls next, invalid request throws `ValidationException` and does not call next
+- `RegisterUserCommandValidatorTests` — all password complexity rules, blank/null email, malformed email, blank/oversized display name
+- `LoginCommandValidatorTests` — blank/null email, malformed email, blank/null password
+
+**Identity.Infrastructure.Tests** — Testcontainers (real SQL Server): ⬜ pending
+
 - `RefreshTokenRepository` — add, get by token, revoke
 - `TokenService` — JWT contains correct claims, refresh token is unique per call
 
-**Identity.API.Tests** — `WebApplicationFactory`:
+**Identity.API.Tests** — `WebApplicationFactory`: ⬜ pending
+
 - `POST /api/auth/register` → 201 on valid input, 400 on duplicate email
 - `POST /api/auth/login` → 200 with tokens, 401 on bad credentials
 - `GET /api/users/me` → 401 without token, 200 with valid JWT
@@ -132,34 +146,36 @@ POST   /api/admin/users/{id}/assign-role   [RequireAdmin]
 
 ---
 
-## NuGet Packages Needed
+## NuGet Packages
 
-| Package | Purpose |
-|---|---|
-| `Microsoft.AspNetCore.Identity.EntityFrameworkCore` | ASP.NET Identity + EF Core |
-| `Microsoft.EntityFrameworkCore.SqlServer` | SQL Server provider |
-| `Microsoft.AspNetCore.Authentication.JwtBearer` | JWT middleware |
-| `System.IdentityModel.Tokens.Jwt` | JWT generation |
-| `MediatR` | CQRS pipeline |
-| `FluentValidation.AspNetCore` | Request validation |
-| `Serilog.AspNetCore` | Structured logging |
-| `AspNetCore.Diagnostics.HealthChecks` + `.SqlServer` | Health check |
-| `xUnit` + `FluentAssertions` + `NSubstitute` | Unit tests |
-| `Testcontainers.MsSql` | Integration tests |
-| `Microsoft.AspNetCore.Mvc.Testing` | API tests |
+| Package | Project | Status |
+| --- | --- | --- |
+| `MediatR 12.5.0` | `Identity.Application` | ✅ Added |
+| `FluentValidation 11.11.0` | `Identity.Application`, `Identity.Application.Tests` | ✅ Added |
+| `FluentAssertions 6.12.2` | `Identity.Application.Tests` | ✅ Added |
+| `NSubstitute 5.3.0` | `Identity.Application.Tests` | ✅ Added |
+| `Microsoft.AspNetCore.Identity.EntityFrameworkCore` | `Identity.Infrastructure` | ⬜ Pending |
+| `Microsoft.EntityFrameworkCore.SqlServer` | `Identity.Infrastructure` | ⬜ Pending |
+| `Microsoft.AspNetCore.Authentication.JwtBearer` | `Identity.API` | ⬜ Pending |
+| `System.IdentityModel.Tokens.Jwt` | `Identity.Infrastructure` | ⬜ Pending |
+| `FluentValidation.AspNetCore` | `Identity.API` | ⬜ Pending |
+| `Serilog.AspNetCore` | `Identity.API` | ⬜ Pending |
+| `AspNetCore.Diagnostics.HealthChecks` + `.SqlServer` | `Identity.API` | ⬜ Pending |
+| `Testcontainers.MsSql` | `Identity.Infrastructure.Tests` | ⬜ Pending |
+| `Microsoft.AspNetCore.Mvc.Testing` | `Identity.API.Tests` | ⬜ Pending |
 
 ---
 
 ## TDD Order for Phase 2
 
 ```
-1. Domain entity tests        → ApplicationUser, RefreshToken
-2. Validator tests            → RegisterUserCommandValidator
-3. ValidationBehavior test    → pipeline rejects bad input
-4. RegisterUserHandler test   → happy path + duplicate email
-5. LoginHandler test          → valid creds + wrong creds
-6. RefreshTokenHandler test   → rotation + expiry
-7. TokenService test          → JWT claims, refresh uniqueness (Testcontainers)
-8. Repository test            → RefreshTokenRepository (Testcontainers)
-9. API endpoint tests         → WebApplicationFactory
+1. ✅ Domain entity tests        → ApplicationUser, RefreshToken
+2. ✅ Validator tests            → RegisterUserCommandValidator, LoginCommandValidator
+3. ✅ ValidationBehavior test    → pipeline rejects bad input, does not call next
+4. ✅ RegisterUserHandler test   → happy path + duplicate email
+5. ✅ LoginHandler test          → valid creds + wrong creds
+6. ✅ RefreshTokenHandler test   → rotation + expiry + unknown token
+7.    TokenService test          → JWT claims, refresh uniqueness (Testcontainers)
+8.    Repository test            → RefreshTokenRepository (Testcontainers)
+9.    API endpoint tests         → WebApplicationFactory
 ```

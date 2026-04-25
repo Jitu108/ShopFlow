@@ -4,6 +4,7 @@ using Identity.Application.DTOs;
 using Identity.Application.Interfaces;
 using Identity.Domain.Entities;
 using NSubstitute;
+using Identity.Domain.Exceptions;
 using NSubstitute.ExceptionExtensions;
 
 namespace Identity.Application.Tests.Commands;
@@ -48,7 +49,7 @@ public class RegisterUserCommandHandlerTests
 
         var act = async () => await _handler.Handle(command, default);
 
-        await act.Should().ThrowAsync<InvalidOperationException>()
+        await act.Should().ThrowAsync<DuplicateEmailException>()
             .WithMessage("*already registered*");
     }
 

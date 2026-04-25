@@ -1104,7 +1104,7 @@ docker compose ps     # all three should show "healthy"
 
 ### Phase 2 — Identity Service Scaffold
 
-**Status: ✅ Scaffolded & building — implementation pending**
+Status: 🔄 In progress — Domain + Application layers complete, Infrastructure & API pending
 
 #### What was done
 
@@ -1123,13 +1123,13 @@ docker compose ps     # all three should show "healthy"
 | `Identity.Infrastructure.Tests` | xunit | Testcontainers integration tests |
 | `Identity.Api.Tests` | xunit | WebApplicationFactory endpoint tests |
 
-#### TDD Implementation Order (still pending)
+#### TDD Implementation Order
 
 ```
-Step 1  → Write failing tests in Identity.Domain.Tests (ApplicationUser, RefreshToken)
-Step 2  → Implement entities in Identity.Domain to pass
-Step 3  → Write failing validator tests in Identity.Application.Tests
-Step 4  → Implement validators, behaviors, handlers in Identity.Application
+Step 1  ✅ Wrote failing tests in Identity.Domain.Tests (ApplicationUser, RefreshToken)
+Step 2  ✅ Implemented Domain entities (ApplicationUser, RefreshToken), enums, exceptions
+Step 3  ✅ Wrote failing tests for validators, behaviors, handlers in Identity.Application.Tests
+Step 4  ✅ Implemented Application layer — commands/handlers, validators, behaviors, interfaces, DTOs
 Step 5  → Write Testcontainers tests in Identity.Infrastructure.Tests
 Step 6  → Implement TokenService, RefreshTokenRepository in Identity.Infrastructure
 Step 7  → Write WebApplicationFactory tests in Identity.Api.Tests
@@ -1137,6 +1137,30 @@ Step 8  → Implement controllers, middleware, Program.cs in Identity.Api
 Step 9  → Add EF Core migrations, run against IdentityDb
 Step 10 → Uncomment identity-service block in docker-compose.yml
 ```
+
+#### Application Layer — Implemented (Step 4)
+
+| Deliverable | Files |
+| --- | --- |
+| Commands + Handlers | `RegisterUserCommand/Handler`, `LoginCommand/Handler`, `RefreshTokenCommand/Handler` |
+| Interfaces | `IUserRepository`, `ITokenService`, `IRefreshTokenRepository` |
+| DTOs | `AuthResponse`, `UserProfileDto` |
+| Validators | `RegisterUserCommandValidator` (email, strong password, display name), `LoginCommandValidator` |
+| Pipeline Behavior | `ValidationBehavior<TRequest, TResponse>` — FluentValidation gate before every handler |
+| NuGet added | `MediatR 12.5.0`, `FluentValidation 11.11.0` (Application); `FluentAssertions 6.12.2`, `NSubstitute 5.3.0` (Tests) |
+| Domain change | Added public `RefreshToken(token, expiresAt, userId)` constructor for NSubstitute stubs + EF Core materialisation |
+| Removed | Placeholder `Class1.cs` and `UnitTest1.cs` scaffolding files |
+
+#### Application Tests — Implemented (Step 3)
+
+| Test class | Scenarios covered |
+| --- | --- |
+| `RegisterUserCommandHandlerTests` | Happy path, duplicate email guard, `CreateAsync` called once |
+| `LoginCommandHandlerTests` | Valid credentials, unknown email, wrong password |
+| `RefreshTokenCommandHandlerTests` | Happy path + token rotation, expired token, unknown token |
+| `ValidationBehaviorTests` | Valid request calls next, invalid request throws `ValidationException` and does not call next |
+| `RegisterUserCommandValidatorTests` | All five password complexity rules, blank/null email, malformed email, blank/oversized display name |
+| `LoginCommandValidatorTests` | Blank/null email, malformed email, blank/null password |
 
 ---
 
@@ -1291,14 +1315,14 @@ These are intentional simplifications to keep the project mid-complexity rather 
 
 ### Immediate — Complete Phase 2 (Identity Service Implementation)
 
-Following TDD order:
+Steps 1–4 are complete. Continuing from Step 5:
 
 | Step | Target | Task |
 | --- | --- | --- |
-| 1 | `Identity.Domain.Tests` | Write failing tests for `ApplicationUser`, `RefreshToken` |
-| 2 | `Identity.Domain` | Implement entities to pass domain tests |
-| 3 | `Identity.Application.Tests` | Write failing tests for validators, behaviors, handlers |
-| 4 | `Identity.Application` | Implement validators, pipeline behaviors, all command/query handlers |
+| ~~1~~ | ~~`Identity.Domain.Tests`~~ | ~~Write failing tests for `ApplicationUser`, `RefreshToken`~~ |
+| ~~2~~ | ~~`Identity.Domain`~~ | ~~Implement entities to pass domain tests~~ |
+| ~~3~~ | ~~`Identity.Application.Tests`~~ | ~~Write failing tests for validators, behaviors, handlers~~ |
+| ~~4~~ | ~~`Identity.Application`~~ | ~~Implement validators, pipeline behaviors, command handlers~~ |
 | 5 | `Identity.Infrastructure.Tests` | Write Testcontainers tests for `TokenService`, `RefreshTokenRepository` |
 | 6 | `Identity.Infrastructure` | Implement EF Core DbContext, repositories, JWT TokenService |
 | 7 | `Identity.Api.Tests` | Write `WebApplicationFactory` tests for all endpoints |
