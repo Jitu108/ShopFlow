@@ -205,6 +205,43 @@ Tests:
 
 ---
 
+## How to Run
+
+> Full details in [Documentations/RUNNING.md](../RUNNING.md).
+
+```bash
+# 1. Start SQL Server (must be healthy before the API starts)
+docker compose up -d sqlserver
+
+# 2. Run the Identity Service
+dotnet run --project Services/Identity/Identity.Api
+```
+
+On first startup in Development, the application auto-creates `IdentityDb` and seeds an admin account:
+
+| Field    | Value                  |
+| -------- | ---------------------- |
+| Email    | `admin@shopflow.com`   |
+| Password | `Admin@12345`          |
+
+**URLs:**
+
+| URL                                   | Purpose      |
+| ------------------------------------- | ------------ |
+| `http://localhost:5015`               | API base     |
+| `http://localhost:5015/swagger`       | Swagger UI   |
+| `http://localhost:5015/health`        | Health check |
+
+**Run tests:**
+
+```bash
+dotnet test ShopFlow.sln
+```
+
+> `Identity.Infrastructure.Tests` uses Testcontainers — Docker must be running.
+
+---
+
 ## TDD Order for Phase 2
 
 ```text
