@@ -24,11 +24,21 @@ public class RefreshTokenRepositoryTests : IAsyncLifetime
         return ctx;
     }
 
+    private static async Task<Guid> SeedUserAsync(AppDbContext ctx)
+    {
+        var user = ApplicationUser.Create($"{Guid.NewGuid()}@example.com", "Test User");
+        await ctx.Users.AddAsync(user);
+        await ctx.SaveChangesAsync();
+        return user.Id;
+    }
+
     [Fact]
     public async Task SaveAsync_ThenGetByToken_ShouldReturnToken()
     {
-        var repo  = new RefreshTokenRepository(CreateContext());
-        var token = RefreshToken.Create(Guid.NewGuid(), DateTime.UtcNow.AddDays(7));
+        var ctx    = CreateContext();
+        var userId = await SeedUserAsync(ctx);
+        var repo   = new RefreshTokenRepository(ctx);
+        var token  = RefreshToken.Create(userId, DateTime.UtcNow.AddDays(7));
 
         await repo.SaveAsync(token, default);
         var found = await repo.GetByTokenAsync(token.Token, default);
@@ -40,8 +50,9 @@ public class RefreshTokenRepositoryTests : IAsyncLifetime
     [Fact]
     public async Task SaveAsync_ShouldPersist_CorrectUserId()
     {
-        var userId = Guid.NewGuid();
-        var repo   = new RefreshTokenRepository(CreateContext());
+        var ctx    = CreateContext();
+        var userId = await SeedUserAsync(ctx);
+        var repo   = new RefreshTokenRepository(ctx);
         var token  = RefreshToken.Create(userId, DateTime.UtcNow.AddDays(7));
 
         await repo.SaveAsync(token, default);
@@ -53,9 +64,11 @@ public class RefreshTokenRepositoryTests : IAsyncLifetime
     [Fact]
     public async Task SaveAsync_ShouldPersist_ExpiresAt()
     {
+        var ctx       = CreateContext();
+        var userId    = await SeedUserAsync(ctx);
         var expiresAt = DateTime.UtcNow.AddDays(7).TruncateToSeconds();
-        var repo      = new RefreshTokenRepository(CreateContext());
-        var token     = RefreshToken.Create(Guid.NewGuid(), expiresAt);
+        var repo      = new RefreshTokenRepository(ctx);
+        var token     = RefreshToken.Create(userId, expiresAt);
 
         await repo.SaveAsync(token, default);
         var found = await repo.GetByTokenAsync(token.Token, default);
@@ -76,8 +89,10 @@ public class RefreshTokenRepositoryTests : IAsyncLifetime
     [Fact]
     public async Task RevokeAsync_ThenGetByToken_ShouldReturnNull()
     {
-        var repo  = new RefreshTokenRepository(CreateContext());
-        var token = RefreshToken.Create(Guid.NewGuid(), DateTime.UtcNow.AddDays(7));
+        var ctx    = CreateContext();
+        var userId = await SeedUserAsync(ctx);
+        var repo   = new RefreshTokenRepository(ctx);
+        var token  = RefreshToken.Create(userId, DateTime.UtcNow.AddDays(7));
 
         await repo.SaveAsync(token, default);
         await repo.RevokeAsync(token.Token, default);
