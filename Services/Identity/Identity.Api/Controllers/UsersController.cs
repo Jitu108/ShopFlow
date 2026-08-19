@@ -35,6 +35,15 @@ public class UsersController : ControllerBase
         await _mediator.Send(new AssignRoleCommand(id, request.Role), ct);
         return Ok();
     }
+
+    [HttpPost("admin/users/{id}/reset-password")]
+    [Authorize(Policy = "RequireAdmin")]
+    public async Task<IActionResult> ResetPassword(Guid id, ResetPasswordRequest request, CancellationToken ct)
+    {
+        await _mediator.Send(new ResetPasswordCommand(id, request.NewPassword), ct);
+        return Ok();
+    }
 }
 
 public record AssignRoleRequest(string Role);
+public record ResetPasswordRequest(string NewPassword);

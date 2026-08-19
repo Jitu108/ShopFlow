@@ -11,4 +11,5 @@ public interface IUserRepository
     Task<bool> CheckPasswordAsync(ApplicationUser user, string password, CancellationToken ct);
     Task UpdateAsync(ApplicationUser user, CancellationToken ct);
     Task<IReadOnlyList<ApplicationUser>> SearchByNameAsync(string name, CancellationToken ct);
+    Task ResetPasswordAsync(ApplicationUser user, string newPassword, CancellationToken ct);
 }

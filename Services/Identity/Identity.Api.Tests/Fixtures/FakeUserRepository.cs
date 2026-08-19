@@ -54,5 +54,12 @@ public class FakeUserRepository : IUserRepository
         return Task.FromResult<IReadOnlyList<ApplicationUser>>(matches);
     }
 
+    public Task ResetPasswordAsync(ApplicationUser user, string newPassword, CancellationToken ct)
+    {
+        if (_store.TryGetValue(user.Id, out var entry))
+            _store[user.Id] = (entry.User, newPassword);
+        return Task.CompletedTask;
+    }
+
     public void Seed(ApplicationUser user, string password) => _store[user.Id] = (user, password);
 }

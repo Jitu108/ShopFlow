@@ -14,6 +14,7 @@ namespace Product.Api.Tests.Fixtures;
 public class ProductApiFactory : WebApplicationFactory<Program>
 {
     public FakeProductRepository ProductRepository { get; } = new();
+    public FakeCategoryRepository CategoryRepository { get; } = new();
     public FakeCacheService CacheService { get; } = new();
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -44,6 +45,9 @@ public class ProductApiFactory : WebApplicationFactory<Program>
 
             services.RemoveAll<IProductRepository>();
             services.AddSingleton<IProductRepository>(ProductRepository);
+
+            services.RemoveAll<ICategoryRepository>();
+            services.AddSingleton<ICategoryRepository>(CategoryRepository);
 
             services.RemoveAll<ICacheService>();
             services.AddSingleton<ICacheService>(CacheService);

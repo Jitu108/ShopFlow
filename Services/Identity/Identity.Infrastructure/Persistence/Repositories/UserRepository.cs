@@ -50,4 +50,11 @@ public class UserRepository : IUserRepository
             .Where(u => u.DisplayName.Contains(name))
             .OrderBy(u => u.DisplayName)
             .ToListAsync(ct);
+
+    public async Task ResetPasswordAsync(ApplicationUser user, string newPassword, CancellationToken ct)
+    {
+        user.SetPasswordHash(_hasher.HashPassword(user, newPassword));
+        _db.Users.Update(user);
+        await _db.SaveChangesAsync(ct);
+    }
 }
