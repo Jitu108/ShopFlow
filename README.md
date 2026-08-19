@@ -119,6 +119,39 @@ curl http://localhost:5001/health
 
 ---
 
+## Product Service
+
+The second service to be fully implemented, following the same Clean Architecture + CQRS + TDD pattern as Identity. Reads are served cache-aside through Redis.
+
+### Endpoints
+
+| Method | Path | Auth | Response |
+| --- | --- | --- | --- |
+| `GET` | `/api/products` | None | 200 — `ProductDto[]` (cached) |
+| `GET` | `/api/products/{id}` | None | 200 — `ProductDto` (cached) |
+| `POST` | `/api/products` | `[RequireVendor]` | 201 — `ProductDto` |
+| `PUT` | `/api/products/{id}` | `[RequireVendor]` (owner only) | 200 — `ProductDto` |
+| `DELETE` | `/api/products/{id}` | `[RequireVendor]` (owner only) | 204 |
+| `GET` | `/api/vendors/{id}/products` | `[RequireVendor]` | 200 — `ProductDto[]` |
+
+### Test coverage
+
+| Project | Type | Tests |
+| --- | --- | --- |
+| `Product.Domain.Tests` | Pure unit | Entity invariants (price/stock, name) |
+| `Product.Application.Tests` | Unit (NSubstitute) | Command/query handlers, validators, pipeline behaviors, cache-aside logic |
+| `Product.Infrastructure.Tests` | Unit + Testcontainers | `ProductRepository` against real SQL Server, `RedisCacheService` against real Redis |
+| `Product.Api.Tests` | WebApplicationFactory | All endpoints — public reads, vendor-only writes, ownership checks, validation errors |
+
+Product tokens are validated with the same JWT secret/issuer/audience as Identity, so a JWT issued by Identity works here unchanged.
+
+```bash
+docker compose up -d sqlserver redis product-service
+curl http://localhost:5002/health
+```
+
+---
+
 ## Getting Started
 
 ### Prerequisites
@@ -172,7 +205,16 @@ ShopFlow/
 │   │   ├── Identity.Application.Tests/
 │   │   ├── Identity.Infrastructure.Tests/
 │   │   └── Identity.Api.Tests/
-│   ├── Product/                Phase 3 — pending
+│   ├── Product/                 Phase 3 — ✅ complete
+│   │   ├── Dockerfile
+│   │   ├── Product.Domain/
+│   │   ├── Product.Application/
+│   │   ├── Product.Infrastructure/
+│   │   ├── Product.Api/
+│   │   ├── Product.Domain.Tests/
+│   │   ├── Product.Application.Tests/
+│   │   ├── Product.Infrastructure.Tests/
+│   │   └── Product.Api.Tests/
 │   ├── Order/                  Phase 5 — pending
 │   ├── Cart/                   Phase 4 — pending
 │   └── Notification/           Phase 5 — pending
@@ -182,7 +224,8 @@ ShopFlow/
 ├── Documentations/
 │   ├── Phases/
 │   │   ├── Phase1.md
-│   │   └── Phase2.md
+│   │   ├── Phase2.md
+│   │   └── Phase3.md
 │   ├── Architecture/
 │   │   └── Identity-Service.md
 │   ├── RUNNING.md
@@ -240,7 +283,7 @@ See [Documentations/ShopFlow-TDD-Guide.md](Documentations/ShopFlow-TDD-Guide.md)
 | --- | --- | --- |
 | Phase 1 | Infrastructure — Docker Compose, folder structure | ✅ Complete |
 | Phase 2 | Identity Service | ✅ Complete |
-| Phase 3 | Product Service | ⏳ Pending |
+| Phase 3 | Product Service | ✅ Complete |
 | Phase 4 | Cart Service | ⏳ Pending |
 | Phase 5 | Order + Notification Services | ⏳ Pending |
 | Phase 6 | API Gateway (Ocelot) | ⏳ Pending |
@@ -260,3 +303,4 @@ See [Documentations/ShopFlow-TDD-Guide.md](Documentations/ShopFlow-TDD-Guide.md)
 | [ShopFlow-TDD-Guide.md](Documentations/ShopFlow-TDD-Guide.md) | TDD strategy per layer |
 | [Phases/Phase1.md](Documentations/Phases/Phase1.md) | Phase 1 detail |
 | [Phases/Phase2.md](Documentations/Phases/Phase2.md) | Phase 2 detail |
+| [Phases/Phase3.md](Documentations/Phases/Phase3.md) | Phase 3 detail |

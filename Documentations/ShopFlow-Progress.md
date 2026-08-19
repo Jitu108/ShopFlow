@@ -1307,7 +1307,15 @@ ShopFlow/
 │   │   ├── Identity.Application.Tests/
 │   │   ├── Identity.Infrastructure.Tests/
 │   │   └── Identity.Api.Tests/
-│   ├── Product/           (Phase 3 — pending)
+│   ├── Product/            (Phase 3 — complete)
+│   │   ├── Product.Domain/
+│   │   ├── Product.Application/
+│   │   ├── Product.Infrastructure/
+│   │   ├── Product.Api/
+│   │   ├── Product.Domain.Tests/
+│   │   ├── Product.Application.Tests/
+│   │   ├── Product.Infrastructure.Tests/
+│   │   └── Product.Api.Tests/
 │   ├── Order/             (Phase 5 — pending)
 │   ├── Cart/              (Phase 4 — pending)
 │   └── Notification/      (Phase 5 — pending)
@@ -1317,7 +1325,8 @@ ShopFlow/
 ├── Documentations/
 │   ├── Phases/
 │   │   ├── Phase1.md
-│   │   └── Phase2.md
+│   │   ├── Phase2.md
+│   │   └── Phase3.md
 │   ├── ShopFlow-Approach.md
 │   ├── ShopFlow-ProjectSpec.md
 │   ├── ShopFlow-TDD-Guide.md
@@ -1380,11 +1389,14 @@ Steps 1–8 are complete. Two wiring steps remain before the Identity Service is
 | 9 | `Identity.Infrastructure` | Wire `UserRepository` to `UserManager<ApplicationUser>`; run EF Core migrations; confirm `IdentityDb` is created |
 | 10 | `docker-compose.yml` | Uncomment `identity-service` block; verify service starts healthy |
 
+### Phase 3 — Complete
+
+The Product Service is fully implemented across all four layers (Domain → Application → Infrastructure → API), following the same Clean Architecture + CQRS + TDD pattern as Identity. 65 tests pass (10 domain, 34 application, 8 infrastructure via Testcontainers, 13 API via `WebApplicationFactory`). See [Phases/Phase3.md](Phases/Phase3.md) for full detail.
+
 ### Upcoming Phases
 
 | Phase | Service | Key dependency |
 | --- | --- | --- |
-| Phase 3 | Product Service | Identity (JWT validation) |
 | Phase 4 | Cart Service | Identity + RabbitMQ |
 | Phase 5 | Order + Notification Services | Identity + Product + RabbitMQ |
 | Phase 6 | API Gateway (Ocelot) | All services healthy |
