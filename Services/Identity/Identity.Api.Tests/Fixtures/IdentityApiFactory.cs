@@ -33,11 +33,18 @@ public class IdentityApiFactory : WebApplicationFactory<Program>
         // ConfigureTestServices runs AFTER the app's DI registrations — overrides take effect
         builder.ConfigureTestServices(services =>
         {
-            // Replace DbContext with in-memory
+            // Replace DbContext with in-memory. Program.cs already registered the SqlServer
+            // provider's services in this container, so the in-memory provider needs its own
+            // internal service provider — otherwise EF sees both providers registered and throws.
+            var inMemoryServiceProvider = new ServiceCollection()
+                .AddEntityFrameworkInMemoryDatabase()
+                .BuildServiceProvider();
+
             services.RemoveAll<DbContextOptions<AppDbContext>>();
             services.RemoveAll<AppDbContext>();
             services.AddDbContext<AppDbContext>(opts =>
-                opts.UseInMemoryDatabase("IdentityApiTests"));
+                opts.UseInMemoryDatabase("IdentityApiTests")
+                    .UseInternalServiceProvider(inMemoryServiceProvider));
 
             // Replace repositories with fakes
             services.RemoveAll<IUserRepository>();
