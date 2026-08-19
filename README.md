@@ -110,10 +110,11 @@ The first service to be fully implemented. All four layers are complete and cove
 | `Identity.Infrastructure.Tests` | Unit + Testcontainers | `TokenService` JWT claims, `RefreshTokenRepository` against real SQL Server |
 | `Identity.Api.Tests` | WebApplicationFactory | All endpoints — happy paths, auth failures, validation errors |
 
-### What remains before the service is fully runnable
+The service is fully runnable standalone today (SQL schema is created automatically via `EnsureCreated`, with an admin account seeded on first run). See [Documentations/RUNNING.md](Documentations/RUNNING.md) for full run instructions and [Documentations/Architecture/Identity-Service.md](Documentations/Architecture/Identity-Service.md) for the detailed architecture writeup.
 
-- Wire `UserRepository` to `UserManager<ApplicationUser>` and run EF Core migrations (Step 9)
-- Uncomment `identity-service` block in `docker-compose.yml` (Step 10)
+### What remains before the service runs via Docker Compose
+
+- Uncomment the `identity-service` block in `docker-compose.yml`
 
 ---
 
@@ -160,7 +161,7 @@ dotnet test ShopFlow.sln
 ```text
 ShopFlow/
 ├── Services/
-│   ├── Identity/               Phase 2 — ✅ complete (migrations + docker pending)
+│   ├── Identity/                Phase 2 — ✅ complete (docker-compose wiring pending)
 │   │   ├── Identity.Domain/
 │   │   ├── Identity.Application/
 │   │   ├── Identity.Infrastructure/
@@ -180,6 +181,9 @@ ShopFlow/
 │   ├── Phases/
 │   │   ├── Phase1.md
 │   │   └── Phase2.md
+│   ├── Architecture/
+│   │   └── Identity-Service.md
+│   ├── RUNNING.md
 │   ├── ShopFlow-Approach.md
 │   ├── ShopFlow-ProjectSpec.md
 │   ├── ShopFlow-TDD-Guide.md
@@ -197,7 +201,7 @@ ShopFlow/
 | Service | URL |
 | --- | --- |
 | API Gateway | `http://localhost:5000` |
-| Identity Service | `http://localhost:5001` |
+| Identity Service | `http://localhost:5015` |
 | Product Service | `http://localhost:5002` |
 | Order Service | `http://localhost:5003` |
 | Cart Service | `http://localhost:5004` |
@@ -231,7 +235,7 @@ See [Documentations/ShopFlow-TDD-Guide.md](Documentations/ShopFlow-TDD-Guide.md)
 | Phase | Scope | Status |
 | --- | --- | --- |
 | Phase 1 | Infrastructure — Docker Compose, folder structure | ✅ Complete |
-| Phase 2 | Identity Service | ✅ Complete — EF Core migrations + docker-compose wiring pending |
+| Phase 2 | Identity Service | ✅ Complete — docker-compose wiring pending |
 | Phase 3 | Product Service | ⏳ Pending |
 | Phase 4 | Cart Service | ⏳ Pending |
 | Phase 5 | Order + Notification Services | ⏳ Pending |
@@ -244,6 +248,8 @@ See [Documentations/ShopFlow-TDD-Guide.md](Documentations/ShopFlow-TDD-Guide.md)
 
 | Document | Description |
 | --- | --- |
+| [RUNNING.md](Documentations/RUNNING.md) | Full local setup and run guide — prerequisites through running tests |
+| [Architecture/Identity-Service.md](Documentations/Architecture/Identity-Service.md) | Detailed architecture writeup of the Identity Service's eight projects |
 | [ShopFlow-Progress.md](Documentations/ShopFlow-Progress.md) | Comprehensive living document — all requirements, decisions, and progress |
 | [ShopFlow-ProjectSpec.md](Documentations/ShopFlow-ProjectSpec.md) | Original project specification |
 | [ShopFlow-Approach.md](Documentations/ShopFlow-Approach.md) | Build order and key decisions |
