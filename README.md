@@ -110,11 +110,12 @@ The first service to be fully implemented. All four layers are complete and cove
 | `Identity.Infrastructure.Tests` | Unit + Testcontainers | `TokenService` JWT claims, `RefreshTokenRepository` against real SQL Server |
 | `Identity.Api.Tests` | WebApplicationFactory | All endpoints — happy paths, auth failures, validation errors |
 
-The service is fully runnable standalone today (SQL schema is created automatically via `EnsureCreated`, with an admin account seeded on first run). See [Documentations/RUNNING.md](Documentations/RUNNING.md) for full run instructions and [Documentations/Architecture/Identity-Service.md](Documentations/Architecture/Identity-Service.md) for the detailed architecture writeup.
+The service is fully runnable both standalone (`dotnet run`) and via Docker Compose — SQL schema is created automatically via `EnsureCreated`, with an admin account seeded on first run. See [Documentations/RUNNING.md](Documentations/RUNNING.md) for full run instructions and [Documentations/Architecture/Identity-Service.md](Documentations/Architecture/Identity-Service.md) for the detailed architecture writeup.
 
-### What remains before the service runs via Docker Compose
-
-- Uncomment the `identity-service` block in `docker-compose.yml`
+```bash
+docker compose up -d sqlserver identity-service
+curl http://localhost:5001/health
+```
 
 ---
 
@@ -161,7 +162,8 @@ dotnet test ShopFlow.sln
 ```text
 ShopFlow/
 ├── Services/
-│   ├── Identity/                Phase 2 — ✅ complete (docker-compose wiring pending)
+│   ├── Identity/                Phase 2 — ✅ complete
+│   │   ├── Dockerfile
 │   │   ├── Identity.Domain/
 │   │   ├── Identity.Application/
 │   │   ├── Identity.Infrastructure/
@@ -201,13 +203,15 @@ ShopFlow/
 | Service | URL |
 | --- | --- |
 | API Gateway | `http://localhost:5000` |
-| Identity Service | `http://localhost:5015` |
+| Identity Service | `http://localhost:5001` |
 | Product Service | `http://localhost:5002` |
 | Order Service | `http://localhost:5003` |
 | Cart Service | `http://localhost:5004` |
 | Angular UI | `http://localhost:4200` |
 | RabbitMQ Management | `http://localhost:15672` |
 | SQL Server | `localhost:1433` |
+
+> These are the Docker Compose port mappings. Running the Identity Service directly via `dotnet run` (outside Docker) instead uses `http://localhost:5015`, per its `launchSettings.json`.
 | Redis | `localhost:6379` |
 
 ---
@@ -235,7 +239,7 @@ See [Documentations/ShopFlow-TDD-Guide.md](Documentations/ShopFlow-TDD-Guide.md)
 | Phase | Scope | Status |
 | --- | --- | --- |
 | Phase 1 | Infrastructure — Docker Compose, folder structure | ✅ Complete |
-| Phase 2 | Identity Service | ✅ Complete — docker-compose wiring pending |
+| Phase 2 | Identity Service | ✅ Complete |
 | Phase 3 | Product Service | ⏳ Pending |
 | Phase 4 | Cart Service | ⏳ Pending |
 | Phase 5 | Order + Notification Services | ⏳ Pending |
