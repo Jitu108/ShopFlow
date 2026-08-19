@@ -9,6 +9,7 @@ public class ApplicationUser
     public string DisplayName { get; private set; } = string.Empty;
     public UserRole Role { get; private set; }
     public bool IsEmailVerified { get; private set; }
+    public string PasswordHash { get; private set; } = string.Empty;
 
     private readonly List<RefreshToken> _refreshTokens = new();
     public IReadOnlyList<RefreshToken> RefreshTokens => _refreshTokens.AsReadOnly();
@@ -44,4 +45,6 @@ public class ApplicationUser
     }
 
     public void AssignRole(UserRole role) => Role = role;
+
+    public void SetPasswordHash(string hash) => PasswordHash = hash;
 }

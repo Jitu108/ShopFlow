@@ -45,5 +45,14 @@ public class FakeUserRepository : IUserRepository
         return Task.CompletedTask;
     }
 
+    public Task<IReadOnlyList<ApplicationUser>> SearchByNameAsync(string name, CancellationToken ct)
+    {
+        var matches = _store.Values
+            .Where(x => x.User.DisplayName.Contains(name, StringComparison.OrdinalIgnoreCase))
+            .Select(x => x.User)
+            .ToList();
+        return Task.FromResult<IReadOnlyList<ApplicationUser>>(matches);
+    }
+
     public void Seed(ApplicationUser user, string password) => _store[user.Id] = (user, password);
 }
