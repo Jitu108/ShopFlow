@@ -1214,6 +1214,118 @@ NuGet added: `FluentAssertions 6.12.2`, `NSubstitute 5.3.0`, `Testcontainers.MsS
 
 ---
 
+### Phase 3 — Product Service
+
+Status: ✅ Complete
+
+#### Phase 3 deliverables
+
+8 projects created under `Services/Product/`, added to `ShopFlow.sln`, project references wired, solution builds cleanly. Built end-to-end using the same Clean Architecture + CQRS + TDD pattern as Identity.
+
+**Naming note:** the catalog entity is `ProductEntity`, not `Product` — naming it `Product` collides with the root namespace segment shared by every project in this service (`Product.Domain`, `Product.Application`, ...). Confirmed by hitting `CS0118: 'Product' is a namespace but is used like a type` as soon as another project referenced the type; renaming was the fix.
+
+#### Projects
+
+| Project | SDK | Role |
+| --- | --- | --- |
+| `Product.Domain` | classlib | Entities (`ProductEntity`, `Category`), exceptions |
+| `Product.Application` | classlib | Commands, queries, DTOs, interfaces, validators, behaviors |
+| `Product.Infrastructure` | classlib | EF Core, Redis cache, repositories |
+| `Product.Api` | webapi | Controllers, middleware, Program.cs |
+| `Product.Domain.Tests` | xunit | Pure unit tests |
+| `Product.Application.Tests` | xunit | Mocked handler tests |
+| `Product.Infrastructure.Tests` | xunit | Testcontainers integration tests (SQL Server + Redis) |
+| `Product.Api.Tests` | xunit | WebApplicationFactory endpoint tests |
+
+#### TDD Implementation Order
+
+```text
+Step 1  ✅ Wrote failing tests in Product.Domain.Tests (ProductEntity, Category)
+Step 2  ✅ Implemented Domain entities, exceptions
+Step 3  ✅ Wrote failing tests for validators, behaviors, handlers in Product.Application.Tests
+Step 4  ✅ Implemented Application layer — commands/handlers, queries/handlers, validators, behaviors, interfaces, DTOs
+Step 5  ✅ Wrote Testcontainers tests in Product.Infrastructure.Tests (ProductRepository, RedisCacheService)
+Step 6  ✅ Implemented Infrastructure layer — AppDbContext, ProductRepository, RedisCacheService
+Step 7  ✅ Wrote WebApplicationFactory tests in Product.Api.Tests
+Step 8  ✅ Implemented API layer — controllers, ExceptionHandlingMiddleware, Program.cs
+```
+
+Unlike Identity, Phase 3 had no held-back steps — EF Core schema creation (`EnsureCreated`) and the `docker-compose.yml` `product-service` block were both wired up and verified in the same pass, including a live end-to-end smoke test against real containers (see below).
+
+#### Application Layer — Implemented (Step 4)
+
+| Deliverable | Files |
+| --- | --- |
+| Commands + Handlers | `CreateProductCommand/Handler`, `UpdateProductCommand/Handler` (ownership check), `DeleteProductCommand/Handler` (soft delete via `Deactivate()`, ownership check) |
+| Queries + Handlers | `GetProductByIdQuery/Handler` (cache-aside, 10 min), `GetProductListQuery/Handler` (cache-aside, active only, 5 min), `GetVendorProductsQuery/Handler` (no cache) |
+| Interfaces | `IProductRepository`, `ICacheService` |
+| DTOs | `ProductDto` |
+| Validators | `CreateProductCommandValidator`, `UpdateProductCommandValidator` — name required (≤200 chars), price/stock ≥ 0, category required |
+| Pipeline Behaviors | `ValidationBehavior<TRequest, TResponse>`; `LoggingBehavior<TRequest, TResponse>` — the one Identity left pending in Phase 2, implemented here |
+| NuGet added | `MediatR 12.5.0`, `FluentValidation 11.11.0`, `Microsoft.Extensions.Logging.Abstractions 10.0.0` (Application); `FluentAssertions 6.12.2`, `NSubstitute 5.3.0` (Tests) |
+
+#### Application Tests — Implemented (Step 3)
+
+| Test class | Scenarios covered |
+| --- | --- |
+| `CreateProductCommandHandlerTests` | Happy path, `AddAsync` called once, catalog cache invalidated |
+| `UpdateProductCommandHandlerTests` | Happy path, unknown id throws `NotFoundException`, non-owning vendor throws `NotFoundException`, both cache keys invalidated |
+| `DeleteProductCommandHandlerTests` | Deactivates product, unknown id / non-owning vendor throw `NotFoundException` |
+| `GetProductByIdQueryHandlerTests` | Cache hit skips repository, cache miss fetches + populates cache, unknown id throws `NotFoundException` |
+| `GetProductListQueryHandlerTests`, `GetVendorProductsQueryHandlerTests` | Cache-aside behavior, vendor-scoped filtering |
+| `CreateProductCommandValidatorTests`, `UpdateProductCommandValidatorTests` | Blank name, negative price/stock, empty category/vendor id |
+| `ValidationBehaviorTests`, `LoggingBehaviorTests` | Valid request calls next; invalid request throws `ValidationException` and does not call next |
+
+34 tests total in `Product.Application.Tests`.
+
+#### Infrastructure Layer — Implemented (Steps 5–6)
+
+| Deliverable | Detail |
+| --- | --- |
+| `AppDbContext` | `Products`, `Categories` DbSets; `Product.CategoryId → Category` FK (`DeleteBehavior.Restrict`); `VendorId` indexed |
+| `ProductRepository` | EF Core implementation — `GetByIdAsync`, `GetAllActiveAsync`, `GetByVendorIdAsync`, `AddAsync`, `UpdateAsync` |
+| `RedisCacheService` | `StackExchange.Redis` — JSON-serialized values via `System.Text.Json`, expiry passed per call |
+| NuGet added | `Microsoft.EntityFrameworkCore.SqlServer 10.0.0`, `StackExchange.Redis 2.8.24` |
+
+#### Infrastructure Tests — Implemented (Step 5)
+
+| Test class | Scenarios covered |
+| --- | --- |
+| `ProductRepositoryTests` (5 Testcontainers tests, real SQL Server) | Add+get roundtrip, unknown id returns null, active-only filtering excludes deactivated, vendor-scoped filtering, update persists changes |
+| `RedisCacheServiceTests` (3 Testcontainers tests, real Redis) | Set+get roundtrip, missing key returns default, remove then get returns default |
+
+NuGet added: `Testcontainers.MsSql 4.4.0`, `Testcontainers.Redis 4.4.0`, `NSubstitute 5.3.0`
+
+#### API Layer — Implemented (Step 8)
+
+| Deliverable | Detail |
+| --- | --- |
+| `ProductsController` | `GET /api/products` (200, public, cached), `GET /api/products/{id}` (200/404, public, cached), `POST /api/products` (201, `[RequireVendor]`), `PUT /api/products/{id}` (200/404, `[RequireVendor]`, owner-only), `DELETE /api/products/{id}` (204/404, `[RequireVendor]`, owner-only) |
+| `VendorsController` | `GET /api/vendors/{id}/products` (200, `[RequireVendor]`) |
+| `ExceptionHandlingMiddleware` | Maps `ValidationException` → 400, `NotFoundException` → 404, `DomainException` → 400, unhandled → 500 |
+| `Program.cs` | Full DI wiring — `JwtSettings` (validated against **the same secret/issuer/audience as Identity**, so Identity-issued JWTs work unchanged), `AppDbContext`, `IConnectionMultiplexer` (Redis, singleton), MediatR, `ValidationBehavior` + `LoggingBehavior`, `RequireVendor` policy, SQL Server + Redis health checks |
+| NuGet added | `AspNetCore.HealthChecks.SqlServer 9.0.0`, `AspNetCore.HealthChecks.Redis 9.0.0`, `FluentValidation.DependencyInjectionExtensions 11.11.0`, `MediatR 12.5.0`, `Serilog.AspNetCore 9.0.0` |
+
+#### API Tests — Implemented (Step 7)
+
+| Deliverable | Detail |
+| --- | --- |
+| `ProductApiFactory` | Swaps `AppDbContext` for EF Core InMemory; replaces `IProductRepository` and `ICacheService` with singleton fakes; injects deterministic JWT settings |
+| `FakeProductRepository` | In-memory `Dictionary<Guid, ProductEntity>` with `Seed()` helper |
+| `FakeCacheService` | In-memory `Dictionary<string, object>` |
+| `JwtTokenHelper` | Generates signed test JWTs matching the production claim structure |
+| `ProductsControllerTests` (11 tests) | Public GET 200, unknown id 404, create as vendor 201, create as customer 403, create without auth 401, invalid body 400, update/delete as owning vendor 200/204, update as non-owning vendor 404, delete without auth 401 |
+| `VendorsControllerTests` (2 tests) | Without auth 401, as vendor 200 |
+| NuGet added | `FluentAssertions 6.12.2`, `Microsoft.AspNetCore.Mvc.Testing 10.0.0`, `Microsoft.EntityFrameworkCore.InMemory 10.0.0` |
+
+#### Live end-to-end verification
+
+Beyond the 65 automated tests, the service was built and run as real Docker containers (`sqlserver`, `redis`, `identity-service`, `product-service`) for a manual round trip: registered a vendor through Identity, promoted the role via the admin endpoint, re-issued a JWT with the `Vendor` role claim, then through Product Service — created a product, confirmed the public list/get-by-id endpoints return it, confirmed Redis actually holds the `product:{id}` cache entry as JSON, updated it as the owning vendor and confirmed the cache key was invalidated, listed it via the vendor-scoped endpoint, then deleted (soft-deleted) it and confirmed it disappears from the public catalog. Role/ownership enforcement (401 without a token, 403 for a non-vendor role, 404 for a non-owning vendor) was confirmed on real HTTP responses, not just against fakes.
+
+One known gap: there is no category-seeding step yet, so `POST /api/products` requires a `Category` row to already exist in `ProductDb` — a row had to be inserted directly via `sqlcmd` for the smoke test. This wasn't part of the original spec and is called out in [Phases/Phase3.md](Phases/Phase3.md) as a follow-up.
+
+---
+
 ## 18. Project Dependency Wiring
 
 ```text
@@ -1263,6 +1375,53 @@ NuGet added: `FluentAssertions 6.12.2`, `NSubstitute 5.3.0`, `Testcontainers.MsS
 | `Identity.Infrastructure.Tests` | `Identity.Infrastructure` |
 | `Identity.API.Tests` | `Identity.API` |
 
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│                        Product Service                           │
+│                                                                  │
+│   Production Code                    Test Projects              │
+│   ───────────────                    ─────────────              │
+│                                                                  │
+│   ┌──────────────┐                  ┌───────────────────────┐   │
+│   │ Product.API  │                  │  Product.API.Tests    │   │
+│   └──────┬───┬───┘                  └───────────┬───────────┘   │
+│          │   │ refs                             │ refs          │
+│          │   └──────────────────┐              ▼               │
+│          │ refs                 │    ┌──────────────────────┐   │
+│          ▼                      │    │ Product.Infra.Tests   │   │
+│   ┌──────────────────┐          │    └──────────┬───────────┘   │
+│   │  Product.Infra   │◄─────────┘              │ refs          │
+│   └────┬─────────┬───┘                         ▼               │
+│        │ refs    │ refs          ┌──────────────────────────┐   │
+│        │         │               │  Product.App.Tests       │   │
+│        │         │               └──────────┬───────────────┘   │
+│        │         │                          │ refs              │
+│        │         ▼                          ▼                   │
+│        │  ┌──────────────────┐   ┌──────────────────────────┐   │
+│        │  │Product.Applicat. │◄──│  Product.Domain.Tests    │   │
+│        │  └────────┬─────────┘   └──────────────────────────┘   │
+│        │ refs      │ refs                                        │
+│        │           ▼                                            │
+│        └──►┌──────────────────┐                                 │
+│            │  Product.Domain  │                                 │
+│            └──────────────────┘                                 │
+│                  (no deps)                                       │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Reference Table — Product Service
+
+| Project | References |
+| --- | --- |
+| `Product.Domain` | — |
+| `Product.Application` | `Product.Domain` |
+| `Product.Infrastructure` | `Product.Domain` + `Product.Application` |
+| `Product.API` | `Product.Application` + `Product.Infrastructure` |
+| `Product.Domain.Tests` | `Product.Domain` |
+| `Product.Application.Tests` | `Product.Application` |
+| `Product.Infrastructure.Tests` | `Product.Infrastructure` |
+| `Product.API.Tests` | `Product.API` |
+
 ---
 
 ## 19. Issues Found and Fixed
@@ -1283,13 +1442,26 @@ NuGet added: `FluentAssertions 6.12.2`, `NSubstitute 5.3.0`, `Testcontainers.MsS
 dotnet build ShopFlow.sln
 
 Build succeeded.
-    0 Warning(s)
+    10 Warning(s)
     0 Error(s)
-
-Time Elapsed 00:00:02.59
 ```
 
-All 8 Identity Service projects build cleanly. No warnings.
+All 16 projects (8 Identity Service + 8 Product Service) build cleanly. The 10 warnings are all `NU1903` known-vulnerability advisories on transitive packages (`Microsoft.OpenApi` via Swashbuckle, `SSH.NET` via Testcontainers) — pre-existing in both services' dependency trees, not introduced by application code.
+
+```bash
+dotnet test ShopFlow.sln
+
+Product.Domain.Tests           10 passed
+Identity.Domain.Tests          21 passed
+Product.Application.Tests      34 passed
+Identity.Application.Tests     38 passed
+Product.Infrastructure.Tests    8 passed   (Testcontainers — SQL Server + Redis)
+Identity.Infrastructure.Tests  16 passed   (Testcontainers — SQL Server)
+Product.API.Tests              13 passed   (WebApplicationFactory)
+Identity.API.Tests             17 passed   (WebApplicationFactory)
+
+Total: 157 passed, 0 failed
+```
 
 ---
 
