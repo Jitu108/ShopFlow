@@ -37,6 +37,7 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
 // ── Repositories & Services ───────────────────────────────────────────────────
 
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ICacheService, RedisCacheService>();
 
 // ── MediatR ───────────────────────────────────────────────────────────────────
@@ -79,6 +80,7 @@ builder.Services
 builder.Services.AddAuthorization(opts =>
 {
     opts.AddPolicy("RequireVendor", p => p.RequireRole("Vendor"));
+    opts.AddPolicy("RequireAdmin", p => p.RequireRole("Admin"));
 });
 
 // ── Health Checks ─────────────────────────────────────────────────────────────

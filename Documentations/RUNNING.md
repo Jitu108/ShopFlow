@@ -1,7 +1,9 @@
 # Running ShopFlow
 
-This guide covers everything needed to run the application locally — from first-time setup through running tests and exploring the API.
+This guide covers everything needed to run the application locally with `dotnet run` — from first-time setup through running tests and exploring the API. Infrastructure (SQL Server, Redis, RabbitMQ) still runs in Docker; only the .NET services run as local processes.
 
+> Want to run the whole application — services included — as Docker containers instead? See [DOCKER.md](./DOCKER.md).
+>
 > **Current state:** Only the Identity Service is implemented (Phase 2). The steps below apply to it. Other services will be added as phases are completed.
 
 ---
