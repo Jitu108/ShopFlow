@@ -79,27 +79,28 @@ services:
 
   # ─── Microservices ─────────────────────────────────────────────────────────
 
-  # identity-service:
-  #   build: ./Services/Identity
-  #   container_name: shopflow-identity
-  #   ports:
-  #     - "5001:80"
-  #   environment:
-  #     - ConnectionStrings__Default=Server=sqlserver;Database=IdentityDb;User Id=sa;Password=${SQL_SA_PASSWORD};TrustServerCertificate=True
-  #     - JwtSettings__Secret=${JWT_SECRET}
-  #     - JwtSettings__Issuer=ShopFlow
-  #     - JwtSettings__Audience=ShopFlow
-  #     - JwtSettings__ExpiryMinutes=60
-  #   depends_on:
-  #     sqlserver:
-  #       condition: service_healthy
-  #   healthcheck:
-  #     test: ["CMD", "curl", "-f", "http://localhost:80/health"]
-  #     interval: 15s
-  #     timeout: 5s
-  #     retries: 3
-  #   networks:
-  #     - shopflow-net
+  identity-service:
+    build: ./Services/Identity
+    container_name: shopflow-identity
+    ports:
+      - "5001:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__Default=Server=sqlserver;Database=IdentityDb;User Id=sa;Password=${SQL_SA_PASSWORD};TrustServerCertificate=True
+      - JwtSettings__Secret=${JWT_SECRET}
+      - JwtSettings__Issuer=ShopFlow
+      - JwtSettings__Audience=ShopFlow
+      - JwtSettings__ExpiryMinutes=60
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks:
+      - shopflow-net
 
   # product-service:
   #   build: ./Services/Product
