@@ -4,7 +4,7 @@ This guide covers everything needed to run the application locally with `dotnet 
 
 > Want to run the whole application — services included — as Docker containers instead? See [DOCKER.md](./DOCKER.md).
 >
-> **Current state:** Only the Identity Service is implemented (Phase 2). The steps below apply to it. Other services will be added as phases are completed.
+> **Current state:** Identity Service (Phase 2) and Product Service (Phase 3) are implemented. The steps below cover both. Other services will be added as phases are completed.
 
 ---
 
@@ -44,7 +44,7 @@ RABBITMQ_USER=guest
 RABBITMQ_PASS=guest
 ```
 
-> **Note:** The `appsettings.Development.json` in Identity.Api already points to `localhost:1433` with `YourStrong@Password123`. If you change `SQL_SA_PASSWORD` in `.env`, update that file too.
+> **Note:** The `appsettings.Development.json` in both `Identity.Api` and `Product.Api` already point to `localhost:1433` with `YourStrong@Password123`. If you change `SQL_SA_PASSWORD` in `.env`, update both files too.
 
 ### 1b. Build the solution
 
@@ -58,7 +58,7 @@ This restores NuGet packages and verifies everything compiles before you run.
 
 ## 2. Start Infrastructure Containers
 
-The Identity Service requires SQL Server. Redis and RabbitMQ are needed by later phases but you can start all three now:
+Identity requires SQL Server. Product additionally requires Redis. RabbitMQ is needed by later phases, but you can start all three now:
 
 ```bash
 docker compose up -d sqlserver redis rabbitmq
@@ -83,7 +83,11 @@ If a container shows `starting` instead of `healthy`, wait a few more seconds an
 
 ---
 
-## 3. Run the Identity Service
+## 3. Run the Services
+
+Each service runs as its own process. Open a separate terminal per service, or run one at a time.
+
+### Identity Service
 
 ```bash
 dotnet run --project Services/Identity/Identity.Api
@@ -101,16 +105,35 @@ info: Microsoft.Hosting.Lifetime[14] Now listening on: http://localhost:5015
 info: Microsoft.Hosting.Lifetime[0] Application started.
 ```
 
-The service is ready when you see `Application started`.
+### Product Service
+
+```bash
+dotnet run --project Services/Product/Product.Api
+```
+
+On first run in Development, the application creates the `ProductDb` database and schema via `EnsureCreated()`. There is no seed data — see [Section 4](#pre-seeded-admin-account) for how to create a category and product once you're logged in.
+
+Expected console output:
+
+```
+info: Microsoft.Hosting.Lifetime[14] Now listening on: http://localhost:5016
+info: Microsoft.Hosting.Lifetime[0] Application started.
+```
+
+Each service is ready when you see `Application started`.
 
 ### Available URLs
 
-| URL | Purpose |
-|---|---|
-| `http://localhost:5015` | API base URL |
-| `https://localhost:7043` | API base URL (HTTPS) |
-| `http://localhost:5015/swagger` | Swagger UI — interactive API explorer |
-| `http://localhost:5015/health` | Health check endpoint |
+| Service | URL | Purpose |
+|---|---|---|
+| Identity | `http://localhost:5015` | API base URL |
+| Identity | `https://localhost:7043` | API base URL (HTTPS) |
+| Identity | `http://localhost:5015/swagger` | Swagger UI |
+| Identity | `http://localhost:5015/health` | Health check endpoint |
+| Product | `http://localhost:5016` | API base URL |
+| Product | `https://localhost:7044` | API base URL (HTTPS) |
+| Product | `http://localhost:5016/swagger` | Swagger UI |
+| Product | `http://localhost:5016/health` | Health check endpoint |
 
 To use HTTPS locally you may need to trust the dev certificate:
 
@@ -124,11 +147,11 @@ dotnet dev-certs https --trust
 
 ### Swagger UI
 
-Open `http://localhost:5015/swagger` in your browser. All endpoints are listed with request/response schemas and a **Try it out** button. The UI includes a **Authorize** button to paste a JWT for authenticated endpoints.
+Open `http://localhost:5015/swagger` (Identity) or `http://localhost:5016/swagger` (Product) in your browser. All endpoints are listed with request/response schemas and a **Try it out** button. The UI includes an **Authorize** button to paste a JWT for authenticated endpoints.
 
 ### Pre-seeded Admin Account
 
-A ready-to-use admin account is seeded on every Development startup:
+A ready-to-use admin account is seeded by the Identity Service on every Development startup:
 
 | Field | Value |
 |---|---|
@@ -136,7 +159,9 @@ A ready-to-use admin account is seeded on every Development startup:
 | Password | `Admin@12345` |
 | Role | `Admin` |
 
-### Quick API Walkthrough
+This account is only known to the Identity Service, but the JWT it issues is trusted by every other service (they share `JwtSettings:Secret`), so log in once here and reuse the token everywhere.
+
+### Quick API Walkthrough — Identity
 
 **1. Register a new user**
 
@@ -199,7 +224,16 @@ curl -X POST http://localhost:5015/api/admin/users/<userId>/assign-role \
   -d '{ "role": "Vendor" }'
 ```
 
-**6. Logout**
+**6. Reset a user's password** (admin only)
+
+```bash
+curl -X POST http://localhost:5015/api/admin/users/<userId>/reset-password \
+  -H "Authorization: Bearer <adminJwt>" \
+  -H "Content-Type: application/json" \
+  -d '{ "newPassword": "NewStrong@Password1" }'
+```
+
+**7. Logout**
 
 ```bash
 curl -X POST http://localhost:5015/api/auth/logout \
@@ -208,7 +242,47 @@ curl -X POST http://localhost:5015/api/auth/logout \
   -d '{ "refreshToken": "<refreshToken>" }'
 ```
 
-### All Endpoints
+### Quick API Walkthrough — Product
+
+Categories are a separate, admin-managed taxonomy — products reference a `categoryId`, so create a category before creating a product. Product creation is Vendor-only and always attributes the product to the caller's own user ID (from the JWT), so assign yourself the `Vendor` role first via the Identity endpoint above if you're testing with a non-vendor account.
+
+**1. List categories** (public)
+
+```bash
+curl http://localhost:5016/api/categories
+```
+
+**2. Create a category** (admin only)
+
+```bash
+curl -X POST http://localhost:5016/api/categories \
+  -H "Authorization: Bearer <adminJwt>" \
+  -H "Content-Type: application/json" \
+  -d '{ "name": "Electronics" }'
+```
+
+**3. Create a product** (vendor only)
+
+```bash
+curl -X POST http://localhost:5016/api/products \
+  -H "Authorization: Bearer <vendorJwt>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Widget",
+    "description": "A useful widget",
+    "price": 9.99,
+    "stockQuantity": 100,
+    "categoryId": "<categoryId>"
+  }'
+```
+
+**4. List products** (public)
+
+```bash
+curl http://localhost:5016/api/products
+```
+
+### All Endpoints — Identity
 
 | Method | Path | Auth Required | Response |
 |---|---|---|---|
@@ -219,6 +293,21 @@ curl -X POST http://localhost:5015/api/auth/logout \
 | `GET` | `/api/users/me` | Bearer JWT | 200 — `UserProfileDto` |
 | `GET` | `/api/admin/users?name=X` | Admin JWT | 200 — `UserProfileDto[]` |
 | `POST` | `/api/admin/users/{id}/assign-role` | Admin JWT | 200 |
+| `POST` | `/api/admin/users/{id}/reset-password` | Admin JWT | 200 |
+| `GET` | `/health` | None | 200 — health status |
+
+### All Endpoints — Product
+
+| Method | Path | Auth Required | Response |
+|---|---|---|---|
+| `GET` | `/api/products` | None | 200 — `ProductDto[]` |
+| `GET` | `/api/products/{id}` | None | 200 — `ProductDto` |
+| `POST` | `/api/products` | Vendor JWT | 201 — `ProductDto` |
+| `PUT` | `/api/products/{id}` | Vendor JWT | 200 — `ProductDto` |
+| `DELETE` | `/api/products/{id}` | Vendor JWT | 204 |
+| `GET` | `/api/vendors/{id}/products` | Vendor JWT | 200 — `ProductDto[]` |
+| `GET` | `/api/categories` | None | 200 — `CategoryDto[]` |
+| `POST` | `/api/categories` | Admin JWT | 201 — `CategoryDto` |
 | `GET` | `/health` | None | 200 — health status |
 
 ---
@@ -237,8 +326,12 @@ dotnet test ShopFlow.sln
 | `Identity.Application.Tests` | Unit with NSubstitute mocks | No |
 | `Identity.Infrastructure.Tests` | Real SQL Server via Testcontainers | **Yes** |
 | `Identity.Api.Tests` | Integration with WebApplicationFactory + in-memory fakes | No |
+| `Product.Domain.Tests` | Pure unit — no I/O | No |
+| `Product.Application.Tests` | Unit with NSubstitute mocks | No |
+| `Product.Infrastructure.Tests` | Real SQL Server via Testcontainers | **Yes** |
+| `Product.Api.Tests` | Integration with WebApplicationFactory + in-memory fakes | No |
 
-> **Testcontainers note:** `Identity.Infrastructure.Tests` spins up its own SQL Server container automatically via Docker. Docker Desktop must be running. The container is created and torn down per test run — no manual setup needed.
+> **Testcontainers note:** The `*.Infrastructure.Tests` projects each spin up their own SQL Server container automatically via Docker. Docker Desktop must be running. Containers are created and torn down per test run — no manual setup needed.
 
 ### Run a single test project
 
@@ -247,6 +340,11 @@ dotnet test Services/Identity/Identity.Domain.Tests
 dotnet test Services/Identity/Identity.Application.Tests
 dotnet test Services/Identity/Identity.Infrastructure.Tests
 dotnet test Services/Identity/Identity.Api.Tests
+
+dotnet test Services/Product/Product.Domain.Tests
+dotnet test Services/Product/Product.Application.Tests
+dotnet test Services/Product/Product.Infrastructure.Tests
+dotnet test Services/Product/Product.Api.Tests
 ```
 
 ### Run with verbose output
@@ -267,7 +365,7 @@ dotnet test Services/Identity/Identity.Application.Tests \
 ## 6. Stop Everything
 
 ```bash
-# Stop the dotnet run process: Ctrl+C
+# Stop each dotnet run process: Ctrl+C
 
 # Stop and remove containers (data is preserved in Docker volumes)
 docker compose down
@@ -298,7 +396,7 @@ Verify the container is healthy before starting the API:
 docker compose ps
 ```
 
-If the container is healthy but the API still fails, confirm the password in `appsettings.Development.json` matches `SQL_SA_PASSWORD` in your `.env`:
+If the container is healthy but the API still fails, confirm the password in `appsettings.Development.json` (Identity and/or Product) matches `SQL_SA_PASSWORD` in your `.env`:
 
 ```json
 "ConnectionStrings": {
@@ -306,12 +404,13 @@ If the container is healthy but the API still fails, confirm the password in `ap
 }
 ```
 
-### Port 5015 already in use
+### Port already in use
 
-Either stop the conflicting process, or override the port:
+Either stop the conflicting process, or override the port for whichever service is affected:
 
 ```bash
 ASPNETCORE_URLS="http://localhost:5099" dotnet run --project Services/Identity/Identity.Api
+ASPNETCORE_URLS="http://localhost:5098" dotnet run --project Services/Product/Product.Api
 ```
 
 ### Testcontainers tests fail or are skipped
@@ -331,7 +430,7 @@ dotnet dev-certs https --trust
 
 ### Admin seed not appearing
 
-The admin seed only runs in the `Development` environment. Check that `ASPNETCORE_ENVIRONMENT` is set to `Development` (it is by default via `launchSettings.json`). If the admin email already exists in the database, the seed is skipped without error.
+The admin seed only runs in the Identity Service's `Development` environment. Check that `ASPNETCORE_ENVIRONMENT` is set to `Development` (it is by default via `launchSettings.json`). If the admin email already exists in the database, the seed is skipped without error.
 
 ---
 
@@ -341,12 +440,18 @@ The admin seed only runs in the `Development` environment. Check that `ASPNETCOR
 |---|---|
 | Identity API (HTTP) | `http://localhost:5015` |
 | Identity API (HTTPS) | `https://localhost:7043` |
-| Swagger UI | `http://localhost:5015/swagger` |
-| Health check | `http://localhost:5015/health` |
+| Identity Swagger UI | `http://localhost:5015/swagger` |
+| Identity health check | `http://localhost:5015/health` |
+| Product API (HTTP) | `http://localhost:5016` |
+| Product API (HTTPS) | `https://localhost:7044` |
+| Product Swagger UI | `http://localhost:5016/swagger` |
+| Product health check | `http://localhost:5016/health` |
 | SQL Server | `localhost:1433` |
 | Redis | `localhost:6379` |
 | RabbitMQ AMQP | `localhost:5672` |
 | RabbitMQ Management UI | `http://localhost:15672` (guest / guest) |
+
+> Note: these are the local `dotnet run` ports (from each service's `launchSettings.json`). Running the same services via Docker Compose instead maps them to `5001` (Identity) and `5002` (Product) — see [DOCKER.md](./DOCKER.md).
 
 ---
 
@@ -354,12 +459,15 @@ The admin seed only runs in the `Development` environment. Check that `ASPNETCOR
 
 | Key | Location | Default (Development) | Purpose |
 |---|---|---|---|
-| `ConnectionStrings:Default` | `appsettings.Development.json` | `Server=localhost,1433;Database=IdentityDb;...` | SQL Server connection |
-| `JwtSettings:Secret` | `appsettings.Development.json` | `shopflow-dev-jwt-secret-key-32-chars-min` | JWT signing key |
-| `JwtSettings:Issuer` | `appsettings.Development.json` | `ShopFlow` | JWT issuer claim |
-| `JwtSettings:Audience` | `appsettings.Development.json` | `ShopFlow` | JWT audience claim |
-| `JwtSettings:ExpiryMinutes` | `appsettings.Development.json` | `60` | Access token lifetime |
-| `AdminSeed:Email` | `appsettings.Development.json` | `admin@shopflow.com` | Seeded admin email |
-| `AdminSeed:Password` | `appsettings.Development.json` | `Admin@12345` | Seeded admin password |
+| `ConnectionStrings:Default` | `Identity.Api/appsettings.Development.json` | `Server=localhost,1433;Database=IdentityDb;...` | SQL Server connection |
+| `JwtSettings:Secret` | `Identity.Api/appsettings.Development.json` | `shopflow-dev-jwt-secret-key-32-chars-min` | JWT signing key |
+| `JwtSettings:Issuer` | `Identity.Api/appsettings.Development.json` | `ShopFlow` | JWT issuer claim |
+| `JwtSettings:Audience` | `Identity.Api/appsettings.Development.json` | `ShopFlow` | JWT audience claim |
+| `JwtSettings:ExpiryMinutes` | `Identity.Api/appsettings.Development.json` | `60` | Access token lifetime |
+| `AdminSeed:Email` | `Identity.Api/appsettings.Development.json` | `admin@shopflow.com` | Seeded admin email |
+| `AdminSeed:Password` | `Identity.Api/appsettings.Development.json` | `Admin@12345` | Seeded admin password |
+| `ConnectionStrings:Default` | `Product.Api/appsettings.Development.json` | `Server=localhost,1433;Database=ProductDb;...` | SQL Server connection |
+| `ConnectionStrings:Redis` | `Product.Api/appsettings.Development.json` | `localhost:6379` | Redis connection (product catalog cache) |
+| `JwtSettings:Secret` | `Product.Api/appsettings.Development.json` | `shopflow-dev-jwt-secret-key-32-chars-min` | JWT signing key — must match Identity's |
 | `SQL_SA_PASSWORD` | `.env` | `YourStrong@Password123` | Docker SQL Server SA password |
 | `JWT_SECRET` | `.env` | _(change in production)_ | Docker JWT secret override |
