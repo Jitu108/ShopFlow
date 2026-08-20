@@ -81,10 +81,10 @@ Services/Identity/
 
 **Persistence:** ✅ implemented
 
-- `AppDbContext : DbContext` — minimal `DbContext` with `RefreshTokens` DbSet; fluent config enforces unique index on `Token` (max 500 chars); ASP.NET Core Identity tables deferred until `UserRepository` is fully wired
+- `AppDbContext : DbContext` — `Users` (`ApplicationUser`) and `RefreshTokens` DbSets; fluent config enforces a unique index on `Email` and on `Token` (max 500 chars). **Not** ASP.NET Core Identity's own tables — a plain EF Core mapping of `ApplicationUser`/`RefreshToken` instead
 - `RefreshTokenRepository : IRefreshTokenRepository` ✅ — `GetByToken` (SingleOrDefault), `Save` (Add + SaveChanges), `Revoke` (Remove + SaveChanges, no-op on unknown token)
-- `UserRepository : IUserRepository` ⬜ — stub; every method throws `NotImplementedException` pending full `UserManager<ApplicationUser>` wiring
-- EF Core migrations → `IdentityDb` ⬜ Pending
+- `UserRepository : IUserRepository` ✅ implemented — **not** wired to `UserManager<ApplicationUser>` as originally planned; instead a custom implementation directly over `AppDbContext` + `IPasswordHasher<ApplicationUser>` (`ExistsByEmailAsync`, `CreateAsync`, `FindByEmailAsync`, `GetByIdAsync`, `CheckPasswordAsync`, `UpdateAsync`, `SearchByNameAsync`, `ResetPasswordAsync`)
+- EF Core migrations → `IdentityDb` — still not added; `IdentityDb` is created via `Database.EnsureCreated()` at Development startup (same as Product Service), confirmed created and in use, just not via migrations
 
 **JWT:** ✅ implemented
 
