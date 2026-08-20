@@ -216,7 +216,7 @@ ShopFlow/
 │   │   ├── Product.Infrastructure.Tests/
 │   │   └── Product.Api.Tests/
 │   ├── Order/                  Phase 5 — pending
-│   ├── Cart/                   Phase 4 — pending
+│   ├── Cart/                   Phase 4 — complete
 │   └── Notification/           Phase 5 — pending
 ├── Gateway/                    Phase 6 — pending
 ├── ClientApp/                  Phase 7 — pending (Angular)
@@ -286,7 +286,7 @@ See [Documentations/ShopFlow-TDD-Guide.md](Documentations/ShopFlow-TDD-Guide.md)
 | Phase 1 | Infrastructure — Docker Compose, folder structure | ✅ Complete |
 | Phase 2 | Identity Service | ✅ Complete |
 | Phase 3 | Product Service | ✅ Complete |
-| Phase 4 | Cart Service | ⏳ Pending |
+| Phase 4 | Cart Service | ✅ Complete |
 | Phase 5 | Order + Notification Services | ⏳ Pending |
 | Phase 6 | API Gateway (Ocelot) | ⏳ Pending |
 | Phase 7 | Angular UI | ⏳ Pending |

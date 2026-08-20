@@ -151,29 +151,34 @@ services:
   #   networks:
   #     - shopflow-net
 
-  # cart-service:
-  #   build: ./Services/Cart
-  #   container_name: shopflow-cart
-  #   ports:
-  #     - "5004:80"
-  #   environment:
-  #     - Redis__ConnectionString=redis:6379
-  #     - RabbitMQ__Host=rabbitmq
-  #     - RabbitMQ__User=${RABBITMQ_USER}
-  #     - RabbitMQ__Pass=${RABBITMQ_PASS}
-  #     - JwtSettings__Secret=${JWT_SECRET}
-  #   depends_on:
-  #     redis:
-  #       condition: service_healthy
-  #     rabbitmq:
-  #       condition: service_healthy
-  #   healthcheck:
-  #     test: ["CMD", "curl", "-f", "http://localhost:80/health"]
-  #     interval: 15s
-  #     timeout: 5s
-  #     retries: 3
-  #   networks:
-  #     - shopflow-net
+  cart-service:
+    build:
+      context: .
+      dockerfile: Services/Cart/Dockerfile
+    container_name: shopflow-cart
+    ports:
+      - "5004:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__Redis=redis:6379
+      - RabbitMQ__Host=rabbitmq
+      - RabbitMQ__User=${RABBITMQ_USER}
+      - RabbitMQ__Pass=${RABBITMQ_PASS}
+      - JwtSettings__Secret=${JWT_SECRET}
+      - JwtSettings__Issuer=ShopFlow
+      - JwtSettings__Audience=ShopFlow
+    depends_on:
+      redis:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks:
+      - shopflow-net
 
   # notification-service:
   #   build: ./Services/Notification
