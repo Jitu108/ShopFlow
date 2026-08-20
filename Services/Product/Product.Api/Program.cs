@@ -7,6 +7,7 @@ using Product.Application.Commands;
 using Product.Application.Interfaces;
 using Product.Application.Validators;
 using Product.Api.Middleware;
+using Product.Domain.Entities;
 using Product.Infrastructure.Caching;
 using Product.Infrastructure.Persistence;
 using Product.Infrastructure.Persistence.Repositories;
@@ -15,9 +16,17 @@ using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Serilog;
 using StackExchange.Redis;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// ── Logging ──────────────────────────────────────────────────────────────────
+
+builder.Host.UseSerilog((context, services, configuration) => configuration
+    .ReadFrom.Configuration(context.Configuration)
+    .ReadFrom.Services(services)
+    .WriteTo.Console());
 
 // ── Settings ─────────────────────────────────────────────────────────────────
 
@@ -122,7 +131,19 @@ if (app.Environment.IsDevelopment())
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.EnsureCreated();
+
+    var seedCategories = app.Configuration.GetSection("CategorySeed").Get<string[]>() ?? [];
+    foreach (var name in seedCategories)
+    {
+        if (!db.Categories.Any(c => c.Name == name))
+        {
+            db.Categories.Add(Category.Create(name));
+        }
+    }
+    db.SaveChanges();
 }
+
+app.UseSerilogRequestLogging();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 

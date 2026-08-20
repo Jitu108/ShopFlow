@@ -165,7 +165,7 @@ Tests:
 
 Beyond the 65 automated tests, the service was built and run as real Docker containers (`sqlserver`, `redis`, `identity-service`, `product-service`) for a manual round trip: registered a vendor through Identity, promoted the role via the admin endpoint, re-issued a JWT with the `Vendor` role claim, then through Product Service — created a product, confirmed the public list/get-by-id endpoints return it, confirmed Redis actually holds the `product:{id}` cache entry as JSON, updated it as the owning vendor and confirmed the cache key was invalidated, listed it via the vendor-scoped endpoint, then deleted (soft-deleted) it and confirmed it disappears from the public catalog. Role/ownership enforcement (401 without a token, 403 for a non-vendor role, 404 for a non-owning vendor) was confirmed on real HTTP responses, not just against fakes.
 
-**Known gap:** there is no category-seeding step yet, so `POST /api/products` requires a `Category` row to already exist in `ProductDb` — a row had to be inserted directly via `sqlcmd` for the smoke test. This wasn't part of the original spec; it's a follow-up.
+**Resolved gap:** category seeding was added after this smoke test (a `CategorySeed` list in `appsettings.Development.json`, applied at Development startup in `Program.cs`) — `POST /api/products` no longer needs a `Category` row inserted by hand. See [STATUS.md](../STATUS.md#gaps-closed).
 
 ---
 
@@ -199,7 +199,7 @@ docker compose up -d sqlserver redis
 dotnet run --project Services/Product/Product.Api
 ```
 
-On first startup in Development, `ProductDb` is auto-created via `EnsureCreated()` (no seed data yet — categories must be created directly in the database until a seeding step is added).
+On first startup in Development, `ProductDb` is auto-created via `EnsureCreated()`, and the categories listed under `CategorySeed` in `appsettings.Development.json` are inserted if not already present.
 
 **URLs:**
 

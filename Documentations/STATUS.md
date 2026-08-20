@@ -19,13 +19,13 @@
 
 Detail per phase: [Phases/Phase1.md](Phases/Phase1.md), [Phases/Phase2.md](Phases/Phase2.md), [Phases/Phase3.md](Phases/Phase3.md).
 
-## Test totals (as of Phase 3)
+## Test totals (as of the known-gaps fix)
 
 ```text
 Identity Service   92 tests passed  (21 Domain, 38 Application, 16 Infrastructure*, 17 API)
-Product Service    65 tests passed  (10 Domain, 34 Application,  8 Infrastructure*, 13 API)
+Product Service    83 tests passed  (10 Domain, 44 Application,  8 Infrastructure*, 21 API)
 ─────────────────────────────────────────────────────────────────────────────────────────
-Total             157 tests passed, 0 failed
+Total             175 tests passed, 0 failed
 
 * Infrastructure tests require Docker running (Testcontainers)
 ```
@@ -50,11 +50,17 @@ Re-run with `dotnet test ShopFlow.sln` — treat that command, not this file, as
 | Phase 6 | API Gateway (Ocelot) | All services healthy |
 | Phase 7 | Angular UI | All API endpoints stable |
 
-## Known gaps (not yet follow-up tickets, just noted)
+## Known gaps
 
-- No category-seeding step in Product Service — `POST /api/products` requires a `Category` row created manually today (see [Phases/Phase3.md](Phases/Phase3.md)).
-- `VendorsController.GetVendorProducts` (Product Service) doesn't check that the caller owns the vendor ID being queried — any authenticated Vendor can list any other vendor's products (see [Architecture/Product-Service.md](Architecture/Product-Service.md)).
-- `Serilog.AspNetCore` is referenced in `Product.Api` but never wired via `UseSerilog(...)` — likely a leftover from copying Identity's `.csproj` (see [Architecture/Product-Service.md](Architecture/Product-Service.md)).
+Not yet follow-up tickets, just noted. None currently tracked — new gaps found during work go here; move an entry to [Gaps closed](#gaps-closed) once it's fixed.
+
+## Gaps closed
+
+- **Category seeding** — `Program.cs` now seeds a default category list (`CategorySeed` in `appsettings.Development.json`) at Development startup, so `POST /api/products` no longer needs a `Category` row inserted by hand.
+- **Vendor listing IDOR** — `VendorsController.GetVendorProducts` now compares the route `{id}` to the caller's `userId` claim and returns 403 Forbidden on mismatch, matching the owner-only pattern already used by `Update`/`Delete`. Covered by a new test (`GetVendorProducts_AsDifferentVendor_ShouldReturn403`).
+- **Serilog wiring** — `Product.Api` now calls `UseSerilog(...)` (console sink, configured via the `Serilog` section in `appsettings.json`) and `UseSerilogRequestLogging()`, so the already-referenced `Serilog.AspNetCore` package is actually in use.
+
+83 Product Service tests pass (10 Domain, 44 Application, 8 Infrastructure*, 21 API — Application/API counts grew from the Phase 3 baseline as gap-closing tests were added).
 
 ## Where to look for what
 

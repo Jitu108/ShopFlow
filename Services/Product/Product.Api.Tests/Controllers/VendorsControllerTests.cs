@@ -42,4 +42,19 @@ public class VendorsControllerTests : IClassFixture<ProductApiFactory>
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         _client.DefaultRequestHeaders.Authorization = null;
     }
+
+    [Fact]
+    public async Task GetVendorProducts_AsDifferentVendor_ShouldReturn403()
+    {
+        var callerId = Guid.NewGuid();
+        var otherVendorId = Guid.NewGuid();
+
+        var jwt = JwtTokenHelper.GenerateToken(callerId, "vendor@example.com", "Vendor");
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
+
+        var response = await _client.GetAsync($"/api/vendors/{otherVendorId}/products");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+        _client.DefaultRequestHeaders.Authorization = null;
+    }
 }
