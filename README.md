@@ -227,12 +227,14 @@ ShopFlow/
 │   │   ├── Phase2.md
 │   │   └── Phase3.md
 │   ├── Architecture/
-│   │   └── Identity-Service.md
+│   │   ├── Identity-Service.md
+│   │   └── Product-Service.md
+│   ├── STATUS.md
 │   ├── RUNNING.md
+│   ├── DOCKER.md
 │   ├── ShopFlow-Approach.md
 │   ├── ShopFlow-ProjectSpec.md
-│   ├── ShopFlow-TDD-Guide.md
-│   └── ShopFlow-Progress.md
+│   └── ShopFlow-TDD-Guide.md
 ├── docker-compose.yml
 ├── .env.example
 ├── .gitignore
@@ -295,12 +297,14 @@ See [Documentations/ShopFlow-TDD-Guide.md](Documentations/ShopFlow-TDD-Guide.md)
 
 | Document | Description |
 | --- | --- |
-| [RUNNING.md](Documentations/RUNNING.md) | Full local setup and run guide — prerequisites through running tests |
-| [Architecture/Identity-Service.md](Documentations/Architecture/Identity-Service.md) | Detailed architecture writeup of the Identity Service's eight projects |
-| [ShopFlow-Progress.md](Documentations/ShopFlow-Progress.md) | Comprehensive living document — all requirements, decisions, and progress |
-| [ShopFlow-ProjectSpec.md](Documentations/ShopFlow-ProjectSpec.md) | Original project specification |
+| [STATUS.md](Documentations/STATUS.md) | Live dashboard — phase status, test totals, immediate next steps, known gaps |
+| [ShopFlow-ProjectSpec.md](Documentations/ShopFlow-ProjectSpec.md) | The spec — requirements, tech stack, architecture, scope limits |
 | [ShopFlow-Approach.md](Documentations/ShopFlow-Approach.md) | Build order and key decisions |
 | [ShopFlow-TDD-Guide.md](Documentations/ShopFlow-TDD-Guide.md) | TDD strategy per layer |
-| [Phases/Phase1.md](Documentations/Phases/Phase1.md) | Phase 1 detail |
-| [Phases/Phase2.md](Documentations/Phases/Phase2.md) | Phase 2 detail |
-| [Phases/Phase3.md](Documentations/Phases/Phase3.md) | Phase 3 detail |
+| [Architecture/Identity-Service.md](Documentations/Architecture/Identity-Service.md) | Detailed as-built architecture of the Identity Service's eight projects |
+| [Architecture/Product-Service.md](Documentations/Architecture/Product-Service.md) | Detailed as-built architecture of the Product Service's eight projects |
+| [Phases/Phase1.md](Documentations/Phases/Phase1.md) | Phase 1 implementation log |
+| [Phases/Phase2.md](Documentations/Phases/Phase2.md) | Phase 2 implementation log |
+| [Phases/Phase3.md](Documentations/Phases/Phase3.md) | Phase 3 implementation log |
+| [RUNNING.md](Documentations/RUNNING.md) | Full local setup and run guide — `dotnet run` against Dockerized infra |
+| [DOCKER.md](Documentations/DOCKER.md) | Running the entire app — services included — via Docker Compose |

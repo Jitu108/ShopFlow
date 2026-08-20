@@ -249,6 +249,55 @@ This mirrors the architecture deliberately: the closer a component is to the Dom
 
 ---
 
+## 5.5 Project Dependency Wiring
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│                        Identity Service                          │
+│                                                                  │
+│   Production Code                    Test Projects              │
+│   ───────────────                    ─────────────              │
+│                                                                  │
+│   ┌──────────────┐                  ┌───────────────────────┐   │
+│   │ Identity.API │                  │  Identity.API.Tests   │   │
+│   └──────┬───┬───┘                  └───────────┬───────────┘   │
+│          │   │ refs                             │ refs          │
+│          │   └──────────────────┐              ▼               │
+│          │ refs                 │    ┌──────────────────────┐   │
+│          ▼                      │    │ Identity.Infra.Tests  │   │
+│   ┌──────────────────┐          │    └──────────┬───────────┘   │
+│   │  Identity.Infra  │◄─────────┘              │ refs          │
+│   └────┬─────────┬───┘                         ▼               │
+│        │ refs    │ refs          ┌──────────────────────────┐   │
+│        │         │               │  Identity.App.Tests      │   │
+│        │         │               └──────────┬───────────────┘   │
+│        │         │                          │ refs              │
+│        │         ▼                          ▼                   │
+│        │  ┌──────────────────┐   ┌──────────────────────────┐   │
+│        │  │Identity.Applicat.│◄──│  Identity.Domain.Tests   │   │
+│        │  └────────┬─────────┘   └──────────────────────────┘   │
+│        │ refs      │ refs                                        │
+│        │           ▼                                            │
+│        └──►┌──────────────────┐                                 │
+│            │  Identity.Domain │                                 │
+│            └──────────────────┘                                 │
+│                  (no deps)                                       │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+| Project | References |
+| --- | --- |
+| `Identity.Domain` | — |
+| `Identity.Application` | `Identity.Domain` |
+| `Identity.Infrastructure` | `Identity.Domain` + `Identity.Application` |
+| `Identity.API` | `Identity.Application` + `Identity.Infrastructure` |
+| `Identity.Domain.Tests` | `Identity.Domain` |
+| `Identity.Application.Tests` | `Identity.Application` |
+| `Identity.Infrastructure.Tests` | `Identity.Infrastructure` |
+| `Identity.API.Tests` | `Identity.API` |
+
+---
+
 ## 6. Request Flow — End to End Example
 
 `POST /api/auth/register`:

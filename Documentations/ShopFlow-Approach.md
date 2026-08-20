@@ -2,7 +2,7 @@
 
 ## What You're Building
 
-5 .NET 8 microservices + Angular 17 SPA + Ocelot gateway, all wired through SQL Server, Redis, and RabbitMQ, running in Docker Compose.
+5 .NET 10 microservices + Angular 17 SPA + Ocelot gateway, all wired through SQL Server, Redis, and RabbitMQ, running in Docker Compose.
 
 ---
 

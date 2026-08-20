@@ -161,6 +161,14 @@ Tests:
 
 ---
 
+## Live End-to-End Verification
+
+Beyond the 65 automated tests, the service was built and run as real Docker containers (`sqlserver`, `redis`, `identity-service`, `product-service`) for a manual round trip: registered a vendor through Identity, promoted the role via the admin endpoint, re-issued a JWT with the `Vendor` role claim, then through Product Service — created a product, confirmed the public list/get-by-id endpoints return it, confirmed Redis actually holds the `product:{id}` cache entry as JSON, updated it as the owning vendor and confirmed the cache key was invalidated, listed it via the vendor-scoped endpoint, then deleted (soft-deleted) it and confirmed it disappears from the public catalog. Role/ownership enforcement (401 without a token, 403 for a non-vendor role, 404 for a non-owning vendor) was confirmed on real HTTP responses, not just against fakes.
+
+**Known gap:** there is no category-seeding step yet, so `POST /api/products` requires a `Category` row to already exist in `ProductDb` — a row had to be inserted directly via `sqlcmd` for the smoke test. This wasn't part of the original spec; it's a follow-up.
+
+---
+
 ## NuGet Packages
 
 | Package | Project | Status |
