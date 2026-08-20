@@ -96,10 +96,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "if (!pm.collectionVariables.get('vendorEmail')) {",
-                  "  pm.collectionVariables.set('vendorEmail', 'vendor.' + Date.now() + '@shopflow.test');",
-                  "  pm.collectionVariables.set('vendorPassword', 'Passw0rd!1');",
-                  "}"
+                  "pm.collectionVariables.set('vendorEmail', 'vendor.' + Date.now() + '.' + Math.floor(Math.random() * 100000) + '@shopflow.test');",
+                  "pm.collectionVariables.set('vendorPassword', 'Passw0rd!1');"
                 ]
               }
             },
