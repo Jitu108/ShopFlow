@@ -11,21 +11,22 @@
 | Phase 1 | Infrastructure — Docker Compose, folder structure | ✅ Complete |
 | Phase 2 | Identity Service | ✅ Complete |
 | Phase 3 | Product Service | ✅ Complete |
-| Phase 4 | Cart Service | ⏳ Pending |
+| Phase 4 | Cart Service | ✅ Complete |
 | Phase 5 | Order + Notification Services | ⏳ Pending |
 | Phase 6 | API Gateway (Ocelot) | ⏳ Pending |
 | Phase 7 | Angular UI | ⏳ Pending |
-| — | `Shared/` class library (event contracts) | ⏳ Pending — needed before Phase 5 |
+| — | `Shared/` class library (event contracts) | ✅ Complete — created in Phase 4 (`OrderPlacedEvent`, `OrderItemDto`, `OrderShippedEvent`) |
 
-Detail per phase: [Phases/Phase1.md](Phases/Phase1.md), [Phases/Phase2.md](Phases/Phase2.md), [Phases/Phase3.md](Phases/Phase3.md).
+Detail per phase: [Phases/Phase1.md](Phases/Phase1.md), [Phases/Phase2.md](Phases/Phase2.md), [Phases/Phase3.md](Phases/Phase3.md), [Phases/Phase4.md](Phases/Phase4.md).
 
-## Test totals (as of the known-gaps fix)
+## Test totals (as of Phase 4)
 
 ```text
 Identity Service   92 tests passed  (21 Domain, 38 Application, 16 Infrastructure*, 17 API)
 Product Service    83 tests passed  (10 Domain, 44 Application,  8 Infrastructure*, 21 API)
+Cart Service       40 tests passed  ( 1 Domain, 23 Application,  6 Infrastructure*, 10 API)
 ─────────────────────────────────────────────────────────────────────────────────────────
-Total             175 tests passed, 0 failed
+Total             215 tests passed, 0 failed
 
 * Infrastructure tests require Docker running (Testcontainers)
 ```
@@ -45,7 +46,6 @@ Phase 2 (Identity) is fully done — the two wiring steps previously tracked her
 
 | Phase | Service | Key dependency |
 | --- | --- | --- |
-| Phase 4 | Cart Service | Identity + RabbitMQ |
 | Phase 5 | Order + Notification Services | Identity + Product + RabbitMQ |
 | Phase 6 | API Gateway (Ocelot) | All services healthy |
 | Phase 7 | Angular UI | All API endpoints stable |
@@ -59,6 +59,7 @@ Not yet follow-up tickets, just noted. None currently tracked — new gaps found
 - **Category seeding** — `Program.cs` now seeds a default category list (`CategorySeed` in `appsettings.Development.json`) at Development startup, so `POST /api/products` no longer needs a `Category` row inserted by hand.
 - **Vendor listing IDOR** — `VendorsController.GetVendorProducts` now compares the route `{id}` to the caller's `userId` claim and returns 403 Forbidden on mismatch, matching the owner-only pattern already used by `Update`/`Delete`. Covered by a new test (`GetVendorProducts_AsDifferentVendor_ShouldReturn403`).
 - **Serilog wiring** — `Product.Api` now calls `UseSerilog(...)` (console sink, configured via the `Serilog` section in `appsettings.json`) and `UseSerilogRequestLogging()`, so the already-referenced `Serilog.AspNetCore` package is actually in use.
+- **MassTransit commercial licensing** — MassTransit introduced a mandatory paid license starting at `9.0.0` (confirmed live: `9.2.0` throws `MassTransit.ConfigurationException` at startup without one). All `MassTransit.RabbitMQ` references (`Cart.Infrastructure`, `Cart.Api`) are pinned to `8.5.10`, the last Apache-2.0 release. Keep Order/Notification services on the same pin in Phase 5 unless the project acquires a license.
 
 83 Product Service tests pass (10 Domain, 44 Application, 8 Infrastructure*, 21 API — Application/API counts grew from the Phase 3 baseline as gap-closing tests were added).
 
