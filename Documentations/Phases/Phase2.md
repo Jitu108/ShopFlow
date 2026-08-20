@@ -180,6 +180,20 @@ Tests:
 
 ---
 
+## Issues Found and Fixed
+
+| # | Project | Problem | Fix |
+| --- | --- | --- | --- |
+| 1 | `Identity.Application.csproj` | Had a reference to its own test project `Identity.Application.Tests` — circular and wrong | Removed bad reference; added correct `→ Identity.Domain` |
+| 2 | `Identity.API.Tests.csproj` | Referenced `..\Identity.Api\Identity.Api.csproj` but actual filename is `Identity.API.csproj` (capitalisation mismatch) — build would fail | Fixed path to `..\Identity.Api\Identity.API.csproj` |
+| 3 | `Identity.Infrastructure.csproj` | No project references — `Infrastructure` had no knowledge of `Domain` or `Application` | Added references to `Identity.Domain` + `Identity.Application` |
+| 4 | `Identity.API.csproj` | No project references — `API` had no knowledge of `Application` or `Infrastructure` | Added references to `Identity.Application` + `Identity.Infrastructure` |
+| 5 | `Identity.Domain.Tests/` | csproj filename was `Idetity.Domain.Tests.csproj` (missing 'n') — typo in filename and solution entry | Renamed file to `Identity.Domain.Tests.csproj`; updated path in `ShopFlow.sln` |
+
+**Total: 92 tests, all passing** (21 Domain, 38 Application, 16 Infrastructure via Testcontainers, 17 API via `WebApplicationFactory`).
+
+---
+
 ## NuGet Packages
 
 | Package | Project | Status |
