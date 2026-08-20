@@ -2,7 +2,12 @@
 
 Functional test suite for the Identity, Product, and Cart services.
 
-## Import
+## Collections
+
+- `ShopFlow.postman_collection.json` — the full 51-request regression suite (Identity → Product → Cart), described below.
+- `ShopFlow.vendor-onboarding.postman_collection.json` — a small, self-contained flow: register a new vendor → admin promotes it to the `Vendor` role → login as the vendor → create a product under that vendor. Independent of the full suite; run it on its own with either environment file. It resolves a `categoryId` at runtime (reuses an existing category if one exists, otherwise creates one as admin), so it works against a fresh database with no categories yet.
+
+## Import (full suite)
 
 1. Import `ShopFlow.postman_collection.json`.
 2. Import one of the environment files and select it as the active environment:
