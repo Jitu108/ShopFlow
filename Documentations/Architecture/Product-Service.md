@@ -226,7 +226,7 @@ Generic and technology-agnostic — the inversion point that lets `RedisCacheSer
 
 **[Product.API.csproj](../../Services/Product/Product.Api/Product.API.csproj)** (`Sdk="Microsoft.NET.Sdk.Web"`) references Application + Infrastructure, plus `Serilog.AspNetCore`, `Swashbuckle.AspNetCore`, `Microsoft.AspNetCore.OpenApi`, `AspNetCore.HealthChecks.SqlServer`, `AspNetCore.HealthChecks.Redis`, `FluentValidation.DependencyInjectionExtensions`, `MediatR`, `Microsoft.AspNetCore.Authentication.JwtBearer`.
 
-> **Discrepancy worth flagging**: `Serilog.AspNetCore` is referenced but `Program.cs` never calls `UseSerilog(...)` — logging in this service runs on the plain built-in `ILogger<T>`, not Serilog. Likely a leftover package copied from Identity's `.csproj` rather than deliberate wiring.
+`Program.cs` calls `UseSerilog(...)` (console sink, reading the `Serilog` section of `appsettings.json`) plus `UseSerilogRequestLogging()`, so the referenced `Serilog.AspNetCore` package is actually wired up rather than sitting unused.
 
 ### Endpoints
 
@@ -246,7 +246,7 @@ GET    /health                                            → 200 OK — health 
 
 **[CategoriesController](../../Services/Product/Product.Api/Controllers/CategoriesController.cs)** — `GetAll` anonymous; `Create` gated by `RequireAdmin`.
 
-**[VendorsController](../../Services/Product/Product.Api/Controllers/VendorsController.cs)** — `GetVendorProducts(id)` is gated only by `RequireVendor`, **not** by matching `id` to the caller's own `userId` claim. This is a real gap: any authenticated Vendor can list *any other* vendor's products by ID, which contradicts the ownership-enforcement pattern `ProductsController.Update`/`Delete` otherwise follow. Worth deciding deliberately (own-vendor-only vs. intentionally public-to-vendors) rather than leaving it as an oversight.
+**[VendorsController](../../Services/Product/Product.Api/Controllers/VendorsController.cs)** — `GetVendorProducts(id)` is gated by `RequireVendor` **and** now checks that `id` matches the caller's own `userId` claim, returning `403 Forbidden` on mismatch (`Forbid()`) before the query is even sent — the same owner-only pattern `ProductsController.Update`/`Delete` follow. Fixes a prior gap where any authenticated Vendor could list *any other* vendor's products by ID.
 
 ### Middleware
 

@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,5 +17,14 @@ public class VendorsController : ControllerBase
     [HttpGet("{id:guid}/products")]
     [Authorize(Policy = "RequireVendor")]
     public async Task<IActionResult> GetVendorProducts(Guid id, CancellationToken ct)
-        => Ok(await _mediator.Send(new GetVendorProductsQuery(id), ct));
+    {
+        if (id != VendorId)
+        {
+            return Forbid();
+        }
+
+        return Ok(await _mediator.Send(new GetVendorProductsQuery(id), ct));
+    }
+
+    private Guid VendorId => Guid.Parse(User.FindFirstValue("userId")!);
 }
