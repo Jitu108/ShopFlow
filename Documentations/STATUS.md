@@ -9,7 +9,7 @@
 | Phase | Scope | Status |
 | --- | --- | --- |
 | Phase 1 | Infrastructure — Docker Compose, folder structure | ✅ Complete |
-| Phase 2 | Identity Service | ✅ Complete — see [gap below](#immediate-next-steps) |
+| Phase 2 | Identity Service | ✅ Complete |
 | Phase 3 | Product Service | ✅ Complete |
 | Phase 4 | Cart Service | ⏳ Pending |
 | Phase 5 | Order + Notification Services | ⏳ Pending |
@@ -34,14 +34,14 @@ Re-run with `dotnet test ShopFlow.sln` — treat that command, not this file, as
 
 ## Immediate next steps
 
-**Finish Phase 2 (Identity)** — steps 1–8 are done; two wiring steps remain:
+Phase 2 (Identity) is fully done — the two wiring steps previously tracked here are resolved, via a different approach than originally planned:
 
-| Step | Target | Task |
+| Step | Target | Outcome |
 | --- | --- | --- |
-| 9 | `Identity.Infrastructure` | Wire `UserRepository` to `UserManager<ApplicationUser>`; run EF Core migrations; confirm `IdentityDb` is created |
-| 10 | `docker-compose.yml` | Uncomment `identity-service` block; verify service starts healthy |
+| 9 | `Identity.Infrastructure` | `UserRepository` is fully implemented, but over a custom `AppDbContext` + `IPasswordHasher<ApplicationUser>` rather than `UserManager<ApplicationUser>`. EF Core migrations were never added — `IdentityDb` is created via `Database.EnsureCreated()` at Development startup instead, confirmed present and in use. See [Phases/Phase2.md](Phases/Phase2.md). |
+| 10 | `docker-compose.yml` | `identity-service` block is live (not commented out) and confirmed running healthy alongside `product-service`, `sqlserver`, `redis`, `rabbitmq`. |
 
-**Then, in order** (per [ShopFlow-Approach.md](ShopFlow-Approach.md)):
+**Next up, in order** (per [ShopFlow-Approach.md](ShopFlow-Approach.md)):
 
 | Phase | Service | Key dependency |
 | --- | --- | --- |
