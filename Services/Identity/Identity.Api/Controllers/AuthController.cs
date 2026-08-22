@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Identity.Application.Commands;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -34,6 +35,15 @@ public class AuthController : ControllerBase
     {
         await _mediator.Send(new LogoutCommand(request.Token), ct);
         return NoContent();
+    }
+
+    [HttpPost("verify-email")]
+    [Authorize]
+    public async Task<IActionResult> VerifyEmail(CancellationToken ct)
+    {
+        var userId = Guid.Parse(User.FindFirstValue("userId")!);
+        await _mediator.Send(new VerifyEmailCommand(userId), ct);
+        return Ok();
     }
 }
 
