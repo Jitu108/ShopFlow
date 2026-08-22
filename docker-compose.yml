@@ -127,29 +127,34 @@ services:
     networks:
       - shopflow-net
 
-  # order-service:
-  #   build: ./Services/Order
-  #   container_name: shopflow-order
-  #   ports:
-  #     - "5003:80"
-  #   environment:
-  #     - ConnectionStrings__Default=Server=sqlserver;Database=OrderDb;User Id=sa;Password=${SQL_SA_PASSWORD};TrustServerCertificate=True
-  #     - RabbitMQ__Host=rabbitmq
-  #     - RabbitMQ__User=${RABBITMQ_USER}
-  #     - RabbitMQ__Pass=${RABBITMQ_PASS}
-  #     - JwtSettings__Secret=${JWT_SECRET}
-  #   depends_on:
-  #     sqlserver:
-  #       condition: service_healthy
-  #     rabbitmq:
-  #       condition: service_healthy
-  #   healthcheck:
-  #     test: ["CMD", "curl", "-f", "http://localhost:80/health"]
-  #     interval: 15s
-  #     timeout: 5s
-  #     retries: 3
-  #   networks:
-  #     - shopflow-net
+  order-service:
+    build:
+      context: .
+      dockerfile: Services/Order/Dockerfile
+    container_name: shopflow-order
+    ports:
+      - "5003:80"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__Default=Server=sqlserver;Database=OrderDb;User Id=sa;Password=${SQL_SA_PASSWORD};TrustServerCertificate=True
+      - RabbitMQ__Host=rabbitmq
+      - RabbitMQ__User=${RABBITMQ_USER}
+      - RabbitMQ__Pass=${RABBITMQ_PASS}
+      - JwtSettings__Secret=${JWT_SECRET}
+      - JwtSettings__Issuer=ShopFlow
+      - JwtSettings__Audience=ShopFlow
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks:
+      - shopflow-net
 
   cart-service:
     build:
@@ -180,22 +185,43 @@ services:
     networks:
       - shopflow-net
 
-  # notification-service:
-  #   build: ./Services/Notification
-  #   container_name: shopflow-notification
-  #   environment:
-  #     - RabbitMQ__Host=rabbitmq
-  #     - RabbitMQ__User=${RABBITMQ_USER}
-  #     - RabbitMQ__Pass=${RABBITMQ_PASS}
-  #     - Email__SmtpHost=${SMTP_HOST}
-  #     - Email__SmtpPort=${SMTP_PORT}
-  #     - Email__From=${SMTP_FROM}
-  #     - Email__Password=${SMTP_PASSWORD}
-  #   depends_on:
-  #     rabbitmq:
-  #       condition: service_healthy
-  #   networks:
-  #     - shopflow-net
+  notification-service:
+    build:
+      context: .
+      dockerfile: Services/Notification/Dockerfile
+    container_name: shopflow-notification
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - RabbitMQ__Host=rabbitmq
+      - RabbitMQ__User=${RABBITMQ_USER}
+      - RabbitMQ__Pass=${RABBITMQ_PASS}
+      - SMTP_HOST=smtp4dev
+      - SMTP_PORT=25
+      - SMTP_FROM=${SMTP_FROM}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      smtp4dev:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks:
+      - shopflow-net
+
+  # Dev-only SMTP catcher — Notification's real .env.example SMTP_* values are for a
+  # production provider; this local server lets the confirmation email be observed
+  # (web UI + REST API) without sending anywhere real.
+  smtp4dev:
+    image: rnwood/smtp4dev:v3
+    container_name: shopflow-smtp4dev
+    ports:
+      - "5099:80"
+    networks:
+      - shopflow-net
 
   # ─── Frontend ──────────────────────────────────────────────────────────────
 

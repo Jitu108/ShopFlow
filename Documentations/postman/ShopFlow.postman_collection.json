@@ -2242,6 +2242,400 @@
           ]
         }
       ]
+    },
+    {
+      "name": "Order",
+      "item": [
+        {
+          "name": "Register - Order Customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{identityBaseUrl}}/api/auth/register",
+              "host": [ "{{identityBaseUrl}}" ],
+              "path": [ "api", "auth", "register" ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{orderCustomerEmail}}\",\n  \"password\": \"{{orderCustomerPassword}}\",\n  \"displayName\": \"Order Customer\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.collectionVariables.set('orderCustomerEmail', 'order_' + Date.now() + '@example.com');",
+                  "pm.collectionVariables.set('orderCustomerPassword', 'StrongP@ss1');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Register Order Customer - status is 201', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('orderCustomerToken', json.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify Email - Order Customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{orderCustomerToken}}" }
+            ],
+            "url": {
+              "raw": "{{identityBaseUrl}}/api/auth/verify-email",
+              "host": [ "{{identityBaseUrl}}" ],
+              "path": [ "api", "auth", "verify-email" ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Verify Email - status is 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login - Order Customer (post verify)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{identityBaseUrl}}/api/auth/login",
+              "host": [ "{{identityBaseUrl}}" ],
+              "path": [ "api", "auth", "login" ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{orderCustomerEmail}}\",\n  \"password\": \"{{orderCustomerPassword}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login Order Customer - status is 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('orderCustomerToken', json.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Place Order - No Auth (401)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{orderBaseUrl}}/api/orders",
+              "host": [ "{{orderBaseUrl}}" ],
+              "path": [ "api", "orders" ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": []\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Place Order No Auth - status is 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Place Order - Empty Items (400)",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{orderCustomerToken}}" }
+            ],
+            "url": {
+              "raw": "{{orderBaseUrl}}/api/orders",
+              "host": [ "{{orderBaseUrl}}" ],
+              "path": [ "api", "orders" ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": []\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Place Order Empty Items - status is 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Place Order - Customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{orderCustomerToken}}" }
+            ],
+            "url": {
+              "raw": "{{orderBaseUrl}}/api/orders",
+              "host": [ "{{orderBaseUrl}}" ],
+              "path": [ "api", "orders" ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"productId\": \"{{$guid}}\",\n      \"productName\": \"Postman Order Item\",\n      \"unitPrice\": 12.5,\n      \"quantity\": 2\n    }\n  ]\n}",
+              "options": { "raw": { "language": "json" } }
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Place Order - status is 201', () => pm.response.to.have.status(201));",
+                  "const json = pm.response.json();",
+                  "pm.test('Place Order - status is Pending', () => pm.expect(json.status).to.eql('Pending'));",
+                  "pm.test('Place Order - total is calculated', () => pm.expect(json.totalAmount).to.eql(25.0));",
+                  "pm.collectionVariables.set('orderId', json.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get My Orders - Customer",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{orderCustomerToken}}" }
+            ],
+            "url": {
+              "raw": "{{orderBaseUrl}}/api/orders",
+              "host": [ "{{orderBaseUrl}}" ],
+              "path": [ "api", "orders" ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get My Orders - status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Get My Orders - contains placed order', () => {",
+                  "  const ids = pm.response.json().map(o => o.id);",
+                  "  pm.expect(ids).to.include(pm.collectionVariables.get('orderId'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Order By Id - Unknown (404)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{orderCustomerToken}}" }
+            ],
+            "url": {
+              "raw": "{{orderBaseUrl}}/api/orders/{{$guid}}",
+              "host": [ "{{orderBaseUrl}}" ],
+              "path": [ "api", "orders", "{{$guid}}" ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get Order Unknown Id - status is 404', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Order By Id - Customer",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{orderCustomerToken}}" }
+            ],
+            "url": {
+              "raw": "{{orderBaseUrl}}/api/orders/{{orderId}}",
+              "host": [ "{{orderBaseUrl}}" ],
+              "path": [ "api", "orders", "{{orderId}}" ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get Order By Id - status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Get Order By Id - matches placed order', () => pm.expect(pm.response.json().id).to.eql(pm.collectionVariables.get('orderId')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Confirm Order - Customer",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{orderCustomerToken}}" }
+            ],
+            "url": {
+              "raw": "{{orderBaseUrl}}/api/orders/{{orderId}}/confirm",
+              "host": [ "{{orderBaseUrl}}" ],
+              "path": [ "api", "orders", "{{orderId}}", "confirm" ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Confirm Order - status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Confirm Order - status is Confirmed', () => pm.expect(pm.response.json().status).to.eql('Confirmed'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Confirm Order - Already Confirmed (400)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{orderCustomerToken}}" }
+            ],
+            "url": {
+              "raw": "{{orderBaseUrl}}/api/orders/{{orderId}}/confirm",
+              "host": [ "{{orderBaseUrl}}" ],
+              "path": [ "api", "orders", "{{orderId}}", "confirm" ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Confirm Order Twice - status is 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin: List All Orders",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{adminToken}}" }
+            ],
+            "url": {
+              "raw": "{{orderBaseUrl}}/api/admin/orders",
+              "host": [ "{{orderBaseUrl}}" ],
+              "path": [ "api", "admin", "orders" ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Admin List Orders - status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Admin List Orders - contains placed order', () => {",
+                  "  const ids = pm.response.json().map(o => o.id);",
+                  "  pm.expect(ids).to.include(pm.collectionVariables.get('orderId'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin: List Orders - Forbidden for Customer (403)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{orderCustomerToken}}" }
+            ],
+            "url": {
+              "raw": "{{orderBaseUrl}}/api/admin/orders",
+              "host": [ "{{orderBaseUrl}}" ],
+              "path": [ "api", "admin", "orders" ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Admin List Orders as Customer - status is 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
     }
   ],
   "variable": [
@@ -2331,6 +2725,22 @@
     },
     {
       "key": "cartProductId",
+      "value": ""
+    },
+    {
+      "key": "orderCustomerEmail",
+      "value": ""
+    },
+    {
+      "key": "orderCustomerPassword",
+      "value": ""
+    },
+    {
+      "key": "orderCustomerToken",
+      "value": ""
+    },
+    {
+      "key": "orderId",
       "value": ""
     }
   ]

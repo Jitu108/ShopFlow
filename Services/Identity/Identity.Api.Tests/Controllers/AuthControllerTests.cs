@@ -183,6 +183,31 @@ public class AuthControllerTests : IClassFixture<IdentityApiFactory>
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
     }
+
+    // ── VerifyEmail ───────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task VerifyEmail_WithValidToken_ShouldReturn200_AndSetIsEmailVerifiedTrue()
+    {
+        var user = ApplicationUser.Create("verify@example.com", "Verify User");
+        _factory.UserRepository.Seed(user, "StrongP@ss1");
+        var jwt = JwtTokenHelper.GenerateToken(user.Id, user.Email, "Customer", emailVerified: false);
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
+
+        var response = await _client.PostAsync("/api/auth/verify-email", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var stored = await _factory.UserRepository.GetByIdAsync(user.Id, default);
+        stored!.IsEmailVerified.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task VerifyEmail_WithoutToken_ShouldReturn401()
+    {
+        var response = await _client.PostAsync("/api/auth/verify-email", null);
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
 }
 
 file record AuthResponseDto(string AccessToken, string RefreshToken, string Email, string DisplayName, string Role);
