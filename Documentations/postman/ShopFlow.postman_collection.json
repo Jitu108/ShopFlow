@@ -41,10 +41,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "if (!pm.collectionVariables.get('customerEmail')) {",
-                  "  pm.collectionVariables.set('customerEmail', 'customer.' + Date.now() + '@shopflow.test');",
-                  "  pm.collectionVariables.set('customerPassword', 'Passw0rd!1');",
-                  "}"
+                  "pm.collectionVariables.set('customerEmail', 'customer.' + Date.now() + '.' + Math.floor(Math.random() * 100000) + '@shopflow.test');",
+                  "pm.collectionVariables.set('customerPassword', 'Passw0rd!1');"
                 ]
               }
             },
@@ -101,10 +99,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "if (!pm.collectionVariables.get('vendorAEmail')) {",
-                  "  pm.collectionVariables.set('vendorAEmail', 'vendora.' + Date.now() + '@shopflow.test');",
-                  "  pm.collectionVariables.set('vendorAPassword', 'Passw0rd!1');",
-                  "}"
+                  "pm.collectionVariables.set('vendorAEmail', 'vendora.' + Date.now() + '.' + Math.floor(Math.random() * 100000) + '@shopflow.test');",
+                  "pm.collectionVariables.set('vendorAPassword', 'Passw0rd!1');"
                 ]
               }
             },
@@ -164,10 +160,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "if (!pm.collectionVariables.get('vendorBEmail')) {",
-                  "  pm.collectionVariables.set('vendorBEmail', 'vendorb.' + Date.now() + '@shopflow.test');",
-                  "  pm.collectionVariables.set('vendorBPassword', 'Passw0rd!1');",
-                  "}"
+                  "pm.collectionVariables.set('vendorBEmail', 'vendorb.' + Date.now() + '.' + Math.floor(Math.random() * 100000) + '@shopflow.test');",
+                  "pm.collectionVariables.set('vendorBPassword', 'Passw0rd!1');"
                 ]
               }
             },
@@ -836,10 +830,8 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "if (!pm.collectionVariables.get('resetUserEmail')) {",
-                  "  pm.collectionVariables.set('resetUserEmail', 'resetuser.' + Date.now() + '@shopflow.test');",
-                  "  pm.collectionVariables.set('resetUserOldPassword', 'OldPassw0rd!1');",
-                  "}"
+                  "pm.collectionVariables.set('resetUserEmail', 'resetuser.' + Date.now() + '.' + Math.floor(Math.random() * 100000) + '@shopflow.test');",
+                  "pm.collectionVariables.set('resetUserOldPassword', 'OldPassw0rd!1');"
                 ]
               }
             },
