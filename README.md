@@ -215,12 +215,12 @@ ShopFlow/
 │   │   ├── Product.Application.Tests/
 │   │   ├── Product.Infrastructure.Tests/
 │   │   └── Product.Api.Tests/
-│   ├── Order/                  Phase 5 — pending
+│   ├── Order/                  Phase 5 — complete
 │   ├── Cart/                   Phase 4 — complete
-│   └── Notification/           Phase 5 — pending
-├── Gateway/                    Phase 6 — pending
+│   └── Notification/           Phase 5 — complete
+├── Gateway/                    Phase 6 — complete
 ├── ClientApp/                  Phase 7 — pending (Angular)
-├── Shared/                     Shared event contracts (pending)
+├── Shared/                     Shared event contracts (complete)
 ├── Documentations/
 │   ├── Phases/
 │   │   ├── Phase1.md
@@ -247,7 +247,7 @@ ShopFlow/
 
 | Service | URL |
 | --- | --- |
-| API Gateway | `http://localhost:5000` |
+| API Gateway | `http://localhost:5005` |
 | Identity Service | `http://localhost:5001` |
 | Product Service | `http://localhost:5002` |
 | Order Service | `http://localhost:5003` |
@@ -255,9 +255,9 @@ ShopFlow/
 | Angular UI | `http://localhost:4200` |
 | RabbitMQ Management | `http://localhost:15672` |
 | SQL Server | `localhost:1433` |
-
-> These are the Docker Compose port mappings. Running the Identity Service directly via `dotnet run` (outside Docker) instead uses `http://localhost:5015`, per its `launchSettings.json`.
 | Redis | `localhost:6379` |
+
+> These are the Docker Compose port mappings. Running the Identity Service directly via `dotnet run` (outside Docker) instead uses `http://localhost:5015`, per its `launchSettings.json`. The gateway is `5005`, not the spec's illustrative `5000` — port 5000 is claimed by macOS AirPlay Receiver on some dev machines; see [Phases/Phase6.md](Documentations/Phases/Phase6.md).
 
 ---
 
@@ -287,8 +287,8 @@ See [Documentations/ShopFlow-TDD-Guide.md](Documentations/ShopFlow-TDD-Guide.md)
 | Phase 2 | Identity Service | ✅ Complete |
 | Phase 3 | Product Service | ✅ Complete |
 | Phase 4 | Cart Service | ✅ Complete |
-| Phase 5 | Order + Notification Services | ⏳ Pending |
-| Phase 6 | API Gateway (Ocelot) | ⏳ Pending |
+| Phase 5 | Order + Notification Services | ✅ Complete |
+| Phase 6 | API Gateway (Ocelot) | ✅ Complete |
 | Phase 7 | Angular UI | ⏳ Pending |
 
 ---

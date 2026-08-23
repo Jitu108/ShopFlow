@@ -12,7 +12,8 @@ Functional test suite for the Identity, Product, Cart, and Order services.
 1. Import `ShopFlow.postman_collection.json`.
 2. Import one of the environment files and select it as the active environment:
    - `ShopFlow.local.postman_environment.json` — for services run via `dotnet run` / IDE (launchSettings HTTP ports).
-   - `ShopFlow.docker.postman_environment.json` — for services run via `docker compose up`.
+   - `ShopFlow.docker.postman_environment.json` — for services run via `docker compose up`, hitting each service's own published port directly.
+   - `ShopFlow.gateway.postman_environment.json` — all four `*BaseUrl` variables point at the API Gateway (`http://localhost:5005`) instead of each service's own port, so the entire suite runs through Ocelot's routing/auth/rate-limiting instead of bypassing it. This is how Phase 6 (API Gateway) was verified — the collection itself is unchanged; only the base URLs differ. Requires the `gateway` container from `docker compose up`.
 3. Run the whole collection with the Collection Runner, **folder order: Identity → Product → Cart → Order**. The requests are stateful — later requests read collection variables (tokens, ids) set by earlier ones, so don't run folders in isolation or out of order on a fresh environment. (The Order folder specifically needs the Identity folder's `POST /api/auth/verify-email` endpoint and the admin login to have already run, for its own verified-customer flow and its `adminToken`-gated admin check respectively.)
 
 ## Requirements
@@ -31,5 +32,4 @@ Functional test suite for the Identity, Product, Cart, and Order services.
 
 - **Notification** — has no HTTP surface to assert against in Postman (no controllers, only `/health`); its email-sending behavior is covered by `Notification.Infrastructure.Tests` (a real SMTP container) and was verified live via smtp4dev during Phase 5 instead. See [Phases/Phase5.md](../Phases/Phase5.md).
 - **Shipping** (`OrderShippedEvent`, a ship endpoint) — deferred out of Phase 5 to a later phase; nothing to test yet.
-- **Gateway** — not implemented in the codebase yet.
-- CI/Newman automation — this is a manual/local Postman Runner suite for now (though it was run once via Newman during Phase 5's verification to confirm the new Order folder end-to-end against the live Docker stack).
+- CI/Newman automation — this is a manual/local Postman Runner suite for now (though it's been run via Newman a couple of times to confirm changes end-to-end against the live Docker stack: once during Phase 5 for the new Order folder, and again during Phase 6 with the `ShopFlow.gateway.postman_environment.json` environment — see [Phases/Phase6.md](../Phases/Phase6.md)).

@@ -1,0 +1,232 @@
+{
+  "Routes": [
+    {
+      "Key": "identity-register",
+      "UpstreamPathTemplate": "/api/auth/register",
+      "UpstreamHttpMethod": ["POST"],
+      "DownstreamPathTemplate": "/api/auth/register",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "identity-service", "Port": 80 }]
+    },
+    {
+      "Key": "identity-login",
+      "UpstreamPathTemplate": "/api/auth/login",
+      "UpstreamHttpMethod": ["POST"],
+      "DownstreamPathTemplate": "/api/auth/login",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "identity-service", "Port": 80 }]
+    },
+    {
+      "Key": "identity-refresh",
+      "UpstreamPathTemplate": "/api/auth/refresh",
+      "UpstreamHttpMethod": ["POST"],
+      "DownstreamPathTemplate": "/api/auth/refresh",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "identity-service", "Port": 80 }]
+    },
+    {
+      "Key": "identity-logout",
+      "UpstreamPathTemplate": "/api/auth/logout",
+      "UpstreamHttpMethod": ["POST"],
+      "DownstreamPathTemplate": "/api/auth/logout",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "identity-service", "Port": 80 }],
+      "AuthenticationOptions": { "AuthenticationProviderKeys": ["Bearer"] }
+    },
+    {
+      "Key": "identity-verify-email",
+      "UpstreamPathTemplate": "/api/auth/verify-email",
+      "UpstreamHttpMethod": ["POST"],
+      "DownstreamPathTemplate": "/api/auth/verify-email",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "identity-service", "Port": 80 }],
+      "AuthenticationOptions": { "AuthenticationProviderKeys": ["Bearer"] }
+    },
+    {
+      "Key": "identity-me",
+      "UpstreamPathTemplate": "/api/users/me",
+      "UpstreamHttpMethod": ["GET"],
+      "DownstreamPathTemplate": "/api/users/me",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "identity-service", "Port": 80 }],
+      "AuthenticationOptions": { "AuthenticationProviderKeys": ["Bearer"] }
+    },
+    {
+      "Key": "identity-admin-users-list",
+      "UpstreamPathTemplate": "/api/admin/users",
+      "UpstreamHttpMethod": ["GET"],
+      "DownstreamPathTemplate": "/api/admin/users",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "identity-service", "Port": 80 }],
+      "AuthenticationOptions": { "AuthenticationProviderKeys": ["Bearer"] }
+    },
+    {
+      "Key": "identity-admin-assign-role",
+      "UpstreamPathTemplate": "/api/admin/users/{id}/assign-role",
+      "UpstreamHttpMethod": ["POST"],
+      "DownstreamPathTemplate": "/api/admin/users/{id}/assign-role",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "identity-service", "Port": 80 }],
+      "AuthenticationOptions": { "AuthenticationProviderKeys": ["Bearer"] }
+    },
+    {
+      "Key": "identity-admin-reset-password",
+      "UpstreamPathTemplate": "/api/admin/users/{id}/reset-password",
+      "UpstreamHttpMethod": ["POST"],
+      "DownstreamPathTemplate": "/api/admin/users/{id}/reset-password",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "identity-service", "Port": 80 }],
+      "AuthenticationOptions": { "AuthenticationProviderKeys": ["Bearer"] }
+    },
+    {
+      "Key": "product-catalog-list",
+      "UpstreamPathTemplate": "/api/products",
+      "UpstreamHttpMethod": ["GET"],
+      "DownstreamPathTemplate": "/api/products",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "product-service", "Port": 80 }]
+    },
+    {
+      "Key": "product-catalog-detail",
+      "UpstreamPathTemplate": "/api/products/{id}",
+      "UpstreamHttpMethod": ["GET"],
+      "DownstreamPathTemplate": "/api/products/{id}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "product-service", "Port": 80 }]
+    },
+    {
+      "Key": "product-create",
+      "UpstreamPathTemplate": "/api/products",
+      "UpstreamHttpMethod": ["POST"],
+      "DownstreamPathTemplate": "/api/products",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "product-service", "Port": 80 }],
+      "AuthenticationOptions": { "AuthenticationProviderKeys": ["Bearer"] }
+    },
+    {
+      "Key": "product-update",
+      "UpstreamPathTemplate": "/api/products/{id}",
+      "UpstreamHttpMethod": ["PUT"],
+      "DownstreamPathTemplate": "/api/products/{id}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "product-service", "Port": 80 }],
+      "AuthenticationOptions": { "AuthenticationProviderKeys": ["Bearer"] }
+    },
+    {
+      "Key": "product-delete",
+      "UpstreamPathTemplate": "/api/products/{id}",
+      "UpstreamHttpMethod": ["DELETE"],
+      "DownstreamPathTemplate": "/api/products/{id}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "product-service", "Port": 80 }],
+      "AuthenticationOptions": { "AuthenticationProviderKeys": ["Bearer"] }
+    },
+    {
+      "Key": "category-list",
+      "UpstreamPathTemplate": "/api/categories",
+      "UpstreamHttpMethod": ["GET"],
+      "DownstreamPathTemplate": "/api/categories",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "product-service", "Port": 80 }]
+    },
+    {
+      "Key": "category-create",
+      "UpstreamPathTemplate": "/api/categories",
+      "UpstreamHttpMethod": ["POST"],
+      "DownstreamPathTemplate": "/api/categories",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "product-service", "Port": 80 }],
+      "AuthenticationOptions": { "AuthenticationProviderKeys": ["Bearer"] }
+    },
+    {
+      "Key": "vendor-products",
+      "UpstreamPathTemplate": "/api/vendors/{id}/products",
+      "UpstreamHttpMethod": ["GET"],
+      "DownstreamPathTemplate": "/api/vendors/{id}/products",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "product-service", "Port": 80 }],
+      "AuthenticationOptions": { "AuthenticationProviderKeys": ["Bearer"] }
+    },
+    {
+      "Key": "cart-root",
+      "UpstreamPathTemplate": "/api/cart",
+      "UpstreamHttpMethod": ["GET", "DELETE"],
+      "DownstreamPathTemplate": "/api/cart",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "cart-service", "Port": 80 }],
+      "AuthenticationOptions": { "AuthenticationProviderKeys": ["Bearer"] }
+    },
+    {
+      "Key": "cart-items",
+      "UpstreamPathTemplate": "/api/cart/{everything}",
+      "UpstreamHttpMethod": ["POST", "PUT", "DELETE"],
+      "DownstreamPathTemplate": "/api/cart/{everything}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "cart-service", "Port": 80 }],
+      "AuthenticationOptions": { "AuthenticationProviderKeys": ["Bearer"] }
+    },
+    {
+      "Key": "order-place",
+      "UpstreamPathTemplate": "/api/orders",
+      "UpstreamHttpMethod": ["POST"],
+      "DownstreamPathTemplate": "/api/orders",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "order-service", "Port": 80 }],
+      "AuthenticationOptions": { "AuthenticationProviderKeys": ["Bearer"] },
+      "RouteClaimsRequirement": { "emailVerified": "true" }
+    },
+    {
+      "Key": "order-list-mine",
+      "UpstreamPathTemplate": "/api/orders",
+      "UpstreamHttpMethod": ["GET"],
+      "DownstreamPathTemplate": "/api/orders",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "order-service", "Port": 80 }],
+      "AuthenticationOptions": { "AuthenticationProviderKeys": ["Bearer"] }
+    },
+    {
+      "Key": "order-get-by-id",
+      "UpstreamPathTemplate": "/api/orders/{id}",
+      "UpstreamHttpMethod": ["GET"],
+      "DownstreamPathTemplate": "/api/orders/{id}",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "order-service", "Port": 80 }],
+      "AuthenticationOptions": { "AuthenticationProviderKeys": ["Bearer"] }
+    },
+    {
+      "Key": "order-confirm",
+      "UpstreamPathTemplate": "/api/orders/{id}/confirm",
+      "UpstreamHttpMethod": ["PUT"],
+      "DownstreamPathTemplate": "/api/orders/{id}/confirm",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "order-service", "Port": 80 }],
+      "AuthenticationOptions": { "AuthenticationProviderKeys": ["Bearer"] }
+    },
+    {
+      "Key": "order-admin-list",
+      "UpstreamPathTemplate": "/api/admin/orders",
+      "UpstreamHttpMethod": ["GET"],
+      "DownstreamPathTemplate": "/api/admin/orders",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "order-service", "Port": 80 }],
+      "AuthenticationOptions": { "AuthenticationProviderKeys": ["Bearer"] }
+    }
+  ],
+  "GlobalConfiguration": {
+    "BaseUrl": "http://localhost:5005",
+    "RateLimitOptions": {
+      "ClientIdHeader": "ClientId",
+      "RouteKeys": [
+        "identity-register", "identity-login", "identity-refresh", "identity-logout",
+        "identity-verify-email", "identity-me", "identity-admin-users-list",
+        "identity-admin-assign-role", "identity-admin-reset-password",
+        "product-catalog-list", "product-catalog-detail", "product-create",
+        "product-update", "product-delete", "category-list", "category-create",
+        "vendor-products", "cart-root", "cart-items",
+        "order-place", "order-list-mine", "order-get-by-id", "order-confirm", "order-admin-list"
+      ],
+      "Limit": 100,
+      "Period": "1m"
+    }
+  }
+}

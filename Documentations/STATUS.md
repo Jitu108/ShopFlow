@@ -13,31 +13,27 @@
 | Phase 3 | Product Service | ✅ Complete |
 | Phase 4 | Cart Service | ✅ Complete |
 | Phase 5 | Order + Notification Services | ✅ Complete (shipping deferred — see [Phases/Phase5.md](Phases/Phase5.md)) |
-| Phase 6 | API Gateway (Ocelot) | ⏳ Pending |
+| Phase 6 | API Gateway (Ocelot) | ✅ Complete — see [Phases/Phase6.md](Phases/Phase6.md) |
 | Phase 7 | Angular UI | ⏳ Pending |
 | — | `Shared/` class library (event contracts) | ✅ Complete — created in Phase 4; `OrderShippedEvent` gained a `CustomerEmail` field in Phase 5 |
 
-Detail per phase: [Phases/Phase1.md](Phases/Phase1.md), [Phases/Phase2.md](Phases/Phase2.md), [Phases/Phase3.md](Phases/Phase3.md), [Phases/Phase4.md](Phases/Phase4.md), [Phases/Phase5.md](Phases/Phase5.md).
+Detail per phase: [Phases/Phase1.md](Phases/Phase1.md), [Phases/Phase2.md](Phases/Phase2.md), [Phases/Phase3.md](Phases/Phase3.md), [Phases/Phase4.md](Phases/Phase4.md), [Phases/Phase5.md](Phases/Phase5.md), [Phases/Phase6.md](Phases/Phase6.md).
 
-## Test totals (as of Phase 5)
+## Test totals (as of pre-Phase-6 gap fixes)
 
 ```text
-Identity Service       114 tests passed  (21 Domain, 52 Application, 16 Infrastructure*, 25 API)
+Identity Service       118 tests passed  (21 Domain, 52 Application, 16 Infrastructure*, 29 API)
 Product Service         83 tests passed  (10 Domain, 44 Application,  8 Infrastructure*, 21 API)
 Cart Service            40 tests passed  ( 1 Domain, 23 Application,  6 Infrastructure*, 10 API)
 Order Service            62 tests passed  (14 Domain, 25 Application,  6 Infrastructure*, 17 API)
 Notification Service     10 tests passed  ( 0 Domain,  5 Application,  5 Infrastructure*,  0 API)
 ─────────────────────────────────────────────────────────────────────────────────────────────────
-Total                   309 tests passed, 0 failed
+Total                   313 tests passed, 0 failed
 
 * Infrastructure tests require Docker running (Testcontainers)
 
-Note: Identity's count jumped from the 92 last recorded at Phase 4 close to 114 — only
-4 of that difference (2 Application, 2 API) is Phase 5's verify-email addendum. The other
-18 predate this phase: Identity.Application.Tests/.Api.Tests had already grown to 50/23
-through undocumented gap-closing work sometime after Phase 4's close-out, without this
-file's Phase 4 baseline row being updated to match. Not a Phase 5 regression — flagging so
-the baseline is accurate going forward.
+Note: Identity API grew from 25 to 29 — the 4 tests added while fixing the `Admin: List Users`
+400 bug ahead of Phase 6 (see "Gaps closed" below), not part of Phase 5 itself.
 ```
 
 Re-run with `dotnet test ShopFlow.sln` — treat that command, not this file, as the source of truth for current pass/fail counts.
@@ -55,15 +51,19 @@ Phase 2 (Identity) is fully done — the two wiring steps previously tracked her
 
 | Phase | Service | Key dependency |
 | --- | --- | --- |
-| Phase 6 | API Gateway (Ocelot) | All services healthy |
 | Phase 7 | Angular UI | All API endpoints stable |
 | *(unscheduled)* | Order Service — ship endpoint + `OrderShippedConsumer` | Deferred out of Phase 5 (see [Phases/Phase5.md](Phases/Phase5.md)) — `OrderShippedEvent` already carries `CustomerEmail`, ready for whichever phase picks this up |
 
+Phase 6 (API Gateway) is done: `Gateway/Gateway.Api` (Ocelot 25.0.0) routes all 4 downstream services, enforces JWT auth + a `RouteClaimsRequirement` on order placement, and rate-limits at 100 req/min/client (IP-identified via a small custom middleware — Ocelot's rate limiter has no IP fallback of its own). Reachable at `http://localhost:5005` (not port 5000 — see [Phases/Phase6.md](Phases/Phase6.md) for why). Verified by running the full existing Postman collection through the gateway instead of each service directly: 64 requests, 118 assertions, 0 failed.
+
 ## Known gaps
 
-- **Postman: 4 pre-existing failures in Identity/Product folders**, surfaced while running the full collection via Newman during Phase 5's verification (unrelated to Phase 5's changes — the Order folder itself passed 13/13): `Identity / Admin: List Users` returns 400 instead of 200 (response also isn't the expected array shape), and `Product / Get Vendor Products - Vendor A requests Vendor B id (403)` returns 200 instead of 403. Not investigated further this phase — the long-running dev containers (up ~2 days at the time) make accumulated test-data drift a plausible cause, but that isn't confirmed. Worth a fresh look against a clean database before Phase 6.
+None currently tracked. The two pre-existing Postman failures noted after Phase 5 (see "Gaps closed" below) were investigated and resolved before starting Phase 6.
 
 ## Gaps closed
+
+- **`Identity / Admin: List Users` returned 400 instead of 200.** Real code bug, not data drift: `UsersController.SearchUsers` bound its `name` query parameter as non-nullable `string` while `Identity.Api` has `<Nullable>enable</Nullable>`, so ASP.NET Core's implicit-required-for-non-nullable-reference-types model validation rejected any request that omitted `?name=` — which is exactly how the Postman "List Users" request calls it (list-all, no filter). Fixed by making `name` optional end-to-end (`UsersController` → `SearchUsersByNameQuery` → `IUserRepository.SearchByNameAsync` → both `UserRepository` and the test `FakeUserRepository`), treating a missing/blank name as "no filter." Verified live against a rebuilt `identity-service`: `GET /api/admin/users` now returns 200 with the full user list, and `?name=Vendor` returns the filtered subset. +4 API tests in `UsersControllerTests` (no filter, with filter, 403 as customer, 401 unauthenticated) — this endpoint previously had zero test coverage.
+- **`Product / Get Vendor Products - Vendor A requests Vendor B id (403)` returned 200 instead of 403.** Not a code bug — `VendorsController.GetVendorProducts` already had the correct ownership check (added back in the `TJKG-004-known-gap` fix, well before Phase 3). The `shopflow-product` and `shopflow-cart` containers had simply been running for 2+ days on stale images that predated later fixes, the same staleness Phase 5 already hit and worked around for `identity-service`. Rebuilt and restarted both containers; re-verified live with two freshly-registered vendors that cross-vendor access now correctly returns 403. No source change needed. Take-away for future phases: rebuild long-running dev containers before trusting a Postman/Newman run against them, rather than assuming a real regression.
 
 - **Category seeding** — `Program.cs` now seeds a default category list (`CategorySeed` in `appsettings.Development.json`) at Development startup, so `POST /api/products` no longer needs a `Category` row inserted by hand.
 - **Vendor listing IDOR** — `VendorsController.GetVendorProducts` now compares the route `{id}` to the caller's `userId` claim and returns 403 Forbidden on mismatch, matching the owner-only pattern already used by `Update`/`Delete`. Covered by a new test (`GetVendorProducts_AsDifferentVendor_ShouldReturn403`).

@@ -4,7 +4,7 @@ using MediatR;
 
 namespace Identity.Application.Queries;
 
-public record SearchUsersByNameQuery(string Name) : IRequest<IReadOnlyList<UserProfileDto>>;
+public record SearchUsersByNameQuery(string? Name) : IRequest<IReadOnlyList<UserProfileDto>>;
 
 public class SearchUsersByNameQueryHandler : IRequestHandler<SearchUsersByNameQuery, IReadOnlyList<UserProfileDto>>
 {

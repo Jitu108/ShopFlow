@@ -45,11 +45,12 @@ public class FakeUserRepository : IUserRepository
         return Task.CompletedTask;
     }
 
-    public Task<IReadOnlyList<ApplicationUser>> SearchByNameAsync(string name, CancellationToken ct)
+    public Task<IReadOnlyList<ApplicationUser>> SearchByNameAsync(string? name, CancellationToken ct)
     {
         var matches = _store.Values
-            .Where(x => x.User.DisplayName.Contains(name, StringComparison.OrdinalIgnoreCase))
+            .Where(x => string.IsNullOrWhiteSpace(name) || x.User.DisplayName.Contains(name, StringComparison.OrdinalIgnoreCase))
             .Select(x => x.User)
+            .OrderBy(x => x.DisplayName)
             .ToList();
         return Task.FromResult<IReadOnlyList<ApplicationUser>>(matches);
     }
