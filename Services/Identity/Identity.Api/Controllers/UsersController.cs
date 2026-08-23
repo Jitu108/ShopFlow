@@ -25,7 +25,7 @@ public class UsersController : ControllerBase
 
     [HttpGet("admin/users")]
     [Authorize(Policy = "RequireAdmin")]
-    public async Task<IActionResult> SearchUsers([FromQuery] string name, CancellationToken ct)
+    public async Task<IActionResult> SearchUsers([FromQuery] string? name, CancellationToken ct)
         => Ok(await _mediator.Send(new SearchUsersByNameQuery(name), ct));
 
     [HttpPost("admin/users/{id}/assign-role")]

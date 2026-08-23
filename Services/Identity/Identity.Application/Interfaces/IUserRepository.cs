@@ -10,6 +10,6 @@ public interface IUserRepository
     Task<ApplicationUser?> GetByIdAsync(Guid id, CancellationToken ct);
     Task<bool> CheckPasswordAsync(ApplicationUser user, string password, CancellationToken ct);
     Task UpdateAsync(ApplicationUser user, CancellationToken ct);
-    Task<IReadOnlyList<ApplicationUser>> SearchByNameAsync(string name, CancellationToken ct);
+    Task<IReadOnlyList<ApplicationUser>> SearchByNameAsync(string? name, CancellationToken ct);
     Task ResetPasswordAsync(ApplicationUser user, string newPassword, CancellationToken ct);
 }

@@ -59,6 +59,70 @@ public class UsersControllerTests : IClassFixture<IdentityApiFactory>
         body.Role.Should().Be("Customer");
     }
 
+    // ── GET /api/admin/users ───────────────────────────────────────────────────
+
+    [Fact]
+    public async Task SearchUsers_WithoutNameFilter_ShouldReturn200_WithAllUsers()
+    {
+        var admin = ApplicationUser.Create("admin6@example.com", "Admin");
+        var alice = ApplicationUser.Create("alice@example.com", "Alice");
+        var bob   = ApplicationUser.Create("bob@example.com", "Bob");
+        _factory.UserRepository.Seed(admin, "AdminP@ss1");
+        _factory.UserRepository.Seed(alice, "StrongP@ss1");
+        _factory.UserRepository.Seed(bob,   "StrongP@ss1");
+
+        var jwt = JwtTokenHelper.GenerateToken(admin.Id, admin.Email, "Admin");
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
+
+        var response = await _client.GetAsync("/api/admin/users");
+        var body     = await response.Content.ReadFromJsonAsync<List<UserProfileDto>>();
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        body!.Select(u => u.DisplayName).Should().Contain(new[] { "Alice", "Bob" });
+    }
+
+    [Fact]
+    public async Task SearchUsers_WithNameFilter_ShouldReturnOnlyMatches()
+    {
+        var admin = ApplicationUser.Create("admin7@example.com", "Admin");
+        var alice = ApplicationUser.Create("alice2@example.com", "Alice");
+        var bob   = ApplicationUser.Create("bob2@example.com", "Bob");
+        _factory.UserRepository.Seed(admin, "AdminP@ss1");
+        _factory.UserRepository.Seed(alice, "StrongP@ss1");
+        _factory.UserRepository.Seed(bob,   "StrongP@ss1");
+
+        var jwt = JwtTokenHelper.GenerateToken(admin.Id, admin.Email, "Admin");
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
+
+        var response = await _client.GetAsync("/api/admin/users?name=Ali");
+        var body     = await response.Content.ReadFromJsonAsync<List<UserProfileDto>>();
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        body!.Select(u => u.DisplayName).Should().Contain("Alice").And.NotContain("Bob");
+    }
+
+    [Fact]
+    public async Task SearchUsers_AsCustomer_ShouldReturn403()
+    {
+        var user = ApplicationUser.Create("customer3@example.com", "Customer");
+        _factory.UserRepository.Seed(user, "StrongP@ss1");
+
+        var jwt = JwtTokenHelper.GenerateToken(user.Id, user.Email, "Customer");
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", jwt);
+
+        var response = await _client.GetAsync("/api/admin/users");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task SearchUsers_WithoutToken_ShouldReturn401()
+    {
+        var response = await _client.GetAsync("/api/admin/users");
+
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+    }
+
     // ── POST /api/admin/users/{id}/assign-role ────────────────────────────────
 
     [Fact]

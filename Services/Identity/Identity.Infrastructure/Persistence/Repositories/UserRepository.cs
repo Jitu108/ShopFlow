@@ -45,9 +45,9 @@ public class UserRepository : IUserRepository
         await _db.SaveChangesAsync(ct);
     }
 
-    public async Task<IReadOnlyList<ApplicationUser>> SearchByNameAsync(string name, CancellationToken ct)
+    public async Task<IReadOnlyList<ApplicationUser>> SearchByNameAsync(string? name, CancellationToken ct)
         => await _db.Users
-            .Where(u => u.DisplayName.Contains(name))
+            .Where(u => string.IsNullOrWhiteSpace(name) || u.DisplayName.Contains(name))
             .OrderBy(u => u.DisplayName)
             .ToListAsync(ct);
 
