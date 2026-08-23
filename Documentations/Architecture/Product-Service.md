@@ -274,7 +274,7 @@ Same catch-order discipline as Identity (subtype before base). Unlike Identity, 
 - Configures JWT Bearer auth the same lazy way as Identity (`AddOptions<JwtBearerOptions>(...).Configure<IOptions<JwtSettings>>(...)`) specifically so `WebApplicationFactory` config overrides in tests take effect; `ClockSkew = TimeSpan.Zero` (no grace period on token expiry).
 - Registers exactly two authorization policies — `RequireVendor`, `RequireAdmin` (role checks only). **No `RequireVerifiedEmail`** — Product has no email-verification concept.
 - Registers `/health` against **both** SQL Server and Redis (Identity checks SQL Server only, since it has no Redis dependency).
-- **Dev-only startup block**: `db.Database.EnsureCreated()` only — **no seed data**, unlike Identity's dev block which also seeds an admin account.
+- **Dev-only startup block**: `db.Database.EnsureCreated()`, **then seeds categories** from the `CategorySeed` array in configuration (`appsettings.Development.json`: `Electronics`, `Clothing`, `Home & Kitchen`, `Books`, `Toys & Games`) — each name added via `Category.Create(name)` only if a category with that exact name doesn't already exist, then one `SaveChanges()`. Comparable in spirit to Identity's dev-seed block (which seeds an admin account instead), just seeding catalog data rather than a user.
 - `public partial class Program` at the bottom, for `WebApplicationFactory<Program>`.
 
 ---
@@ -374,7 +374,7 @@ dotnet run --project Services/Product/Product.Api
 ```
 
 - API: `http://localhost:5015` in Identity's case, `http://localhost:5016` here; Swagger: `/swagger`; health: `/health` (SQL Server + Redis, both checked)
-- No dev seed data — a category must be created (as Admin) before a product can reference one
+- Dev environments seed five categories automatically (`Electronics`, `Clothing`, `Home & Kitchen`, `Books`, `Toys & Games`) — a product can reference one of these immediately, with no manual `POST /api/categories` call needed first
 - `dotnet test ShopFlow.sln` — note `Product.Infrastructure.Tests` needs Docker running (Testcontainers spins up **both** SQL Server and Redis, one container each)
 
 ---

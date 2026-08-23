@@ -28,7 +28,7 @@ Both were re-verified as passing again in this phase's full Postman run through 
 
 ## Verified route inventory
 
-Built by reading every controller directly rather than trusting the spec's two illustrative routes (several controllers mix public and protected actions under the same path prefix — see `Phase6-Plan.md`'s table for the full reasoning). All 23 routes wired in `ocelot.json` exactly as planned; no deviations from the planned route/auth table.
+Built by reading every controller directly rather than trusting the spec's two illustrative routes (several controllers mix public and protected actions under the same path prefix — see `Phase6-Plan.md`'s table for the full reasoning). All 24 routes wired in `ocelot.json` exactly as planned — `Phase6-Plan.md`'s 20-row table condenses several `Key`s per row (e.g. one `GET`/`PUT`/`DELETE` row for Product's `/api/products/{id}` covers three separate `ocelot.json` route blocks, one per verb), which expands to exactly 24 once each `Key` is counted individually; no deviations from the planned route/auth table.
 
 ## Decisions confirmed before implementation (see `Phase6-Plan.md`)
 

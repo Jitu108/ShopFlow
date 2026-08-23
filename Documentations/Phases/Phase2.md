@@ -47,12 +47,14 @@ Services/Identity/
 | `RefreshTokenCommand` | Validates + revokes old token via `IRefreshTokenRepository`, issues new JWT + refresh token pair | ✅ Done |
 | `LogoutCommand` | Revokes the supplied refresh token via `IRefreshTokenRepository` | ✅ Done |
 | `AssignRoleCommand` | Looks up user, parses `UserRole` enum, calls `user.AssignRole()`, persists; throws `NotFoundException` / `DomainException` on invalid input | ✅ Done |
+| `ResetPasswordCommand` | Admin-only: looks up the target user by `{id}`, re-hashes and persists a new password via `IUserRepository.ResetPasswordAsync`; throws `NotFoundException` if the user doesn't exist | ✅ Done |
 
 **Queries + Handlers:**
 
 | Query | Handler responsibility | Status |
 | --- | --- | --- |
 | `GetCurrentUserQuery` | Resolves `UserProfileDto` from `IUserRepository.GetByIdAsync` using `userId` claim; throws `NotFoundException` if user no longer exists | ✅ Done |
+| `SearchUsersByNameQuery` | Admin-only: delegates to `IUserRepository.SearchByNameAsync`, projects to `UserProfileDto` list | ✅ Done |
 
 **DTOs:** ✅ implemented
 
@@ -61,7 +63,7 @@ Services/Identity/
 
 **Interfaces:** ✅ implemented
 
-- `IUserRepository` — `ExistsByEmail`, `Create`, `FindByEmail`, `GetById`, `CheckPassword`, `Update`
+- `IUserRepository` — `ExistsByEmail`, `Create`, `FindByEmail`, `GetById`, `CheckPassword`, `Update`, `SearchByName`, `ResetPassword`
 - `ITokenService` — `GenerateJwtToken`, `GenerateRefreshTokenAsync`
 - `IRefreshTokenRepository` — `GetByToken`, `Save`, `Revoke`
 
@@ -109,9 +111,11 @@ options.AddPolicy("RequireVerifiedEmail", p => p.RequireClaim("emailVerified", "
 POST   /api/auth/register                         → 201 Created
 POST   /api/auth/login                            → 200 OK
 POST   /api/auth/refresh                          → 200 OK
-POST   /api/auth/logout           [Authorize]     → 204 No Content
-GET    /api/users/me              [Authorize]     → 200 OK
-POST   /api/admin/users/{id}/assign-role  [RequireAdmin]  → 200 OK
+POST   /api/auth/logout                     [Authorize]     → 204 No Content
+GET    /api/users/me                        [Authorize]     → 200 OK
+GET    /api/admin/users?name=               [RequireAdmin]  → 200 OK
+POST   /api/admin/users/{id}/assign-role    [RequireAdmin]  → 200 OK
+POST   /api/admin/users/{id}/reset-password [RequireAdmin]  → 200 OK
 ```
 
 Note: `PUT /api/users/me` is deferred — no update profile command implemented yet.
@@ -127,7 +131,7 @@ Note: `PUT /api/users/me` is deferred — no update profile command implemented 
 | `NotFoundException` | 404 |
 | `DuplicateEmailException` | 409 |
 | `DomainException` | 400 |
-| Any unhandled `Exception` | 500 — generic message, full exception logged via Serilog |
+| Any unhandled `Exception` | 500 — generic message, full exception logged via plain `ILogger<ExceptionHandlingMiddleware>` (Serilog is referenced in the `.csproj` but never wired up via `UseSerilog(...)` in `Program.cs`, unlike every later service) |
 
 **Program.cs wiring:** ✅ implemented
 

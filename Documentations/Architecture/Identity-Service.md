@@ -117,6 +117,8 @@ Note `LoginCommandHandler` deliberately throws the *same* `InvalidCredentialsExc
 | `RefreshTokenCommand(Token)` | `AuthResponse` | Looks up + validates the refresh token, loads the owning user, **revokes the old token**, issues a new JWT + refresh token pair (rotation) |
 | `LogoutCommand(Token)` | `Unit` | Revokes the supplied refresh token |
 | `AssignRoleCommand(UserId, Role)` | `Unit` | Loads user, parses `Role` string to `UserRole` enum, calls `user.AssignRole()`, persists |
+| `VerifyEmailCommand(UserId)` | `Unit` | Loads user (`NotFoundException` if missing), calls `user.VerifyEmail()` (sets `IsEmailVerified = true`), persists via `UpdateAsync`. Added in Phase 5 specifically so `POST /api/orders [RequireVerifiedEmail]` in Order Service becomes satisfiable by a real login — before this command existed, `ApplicationUser.VerifyEmail()` was defined and unit-tested but never callable from any command/handler/controller, so no real user could ever get `emailVerified: true` on their JWT. Does not reissue a token — the caller must log in again afterward to get one with the updated claim, the same two-step pattern `AssignRoleCommand` already established |
+| `ResetPasswordCommand(UserId, NewPassword)` | `Unit` | Loads user (`NotFoundException` if missing), calls `IUserRepository.ResetPasswordAsync(user, newPassword, ct)` — which re-hashes and persists the new password directly, rather than loading-then-saving the entity through a domain method |
 
 ### Queries + Handlers
 
@@ -139,6 +141,8 @@ Every command/query is an immutable `record` implementing MediatR's `IRequest`/`
 
 - `RegisterUserCommandValidator` — email format; password ≥8 chars with upper/lower/digit/special-char rules; display name required, ≤100 chars
 - `LoginCommandValidator` — email format + non-empty password only (no complexity check — login must not leak password policy)
+- `ResetPasswordCommandValidator` — `UserId` not empty; `NewPassword` not empty, ≥8 chars, same upper/lower/digit/special-char rules as `RegisterUserCommandValidator`
+- No validator for `VerifyEmailCommand` (or `RefreshTokenCommand`/`LogoutCommand`/`AssignRoleCommand`) — nothing about them needs FluentValidation-shaped input validation beyond a non-empty ID, which the handler's `NotFoundException` path already covers
 
 ### Pipeline Behavior
 
@@ -162,10 +166,11 @@ Every command/query is an immutable `record` implementing MediatR's `IRequest`/`
 
 Note this is a hand-rolled `DbContext`, **not** `IdentityDbContext<ApplicationUser>` — despite referencing `Microsoft.AspNetCore.Identity.EntityFrameworkCore`, the service does not use ASP.NET Core Identity's `UserManager`/`SignInManager` machinery; it uses only `IPasswordHasher<ApplicationUser>` for hashing and rolls its own repository queries.
 
-**[UserRepository : IUserRepository](../../Services/Identity/Identity.Infrastructure/Persistence/Repositories/UserRepository.cs)** — implements all seven `IUserRepository` methods directly against `AppDbContext` + `IPasswordHasher<ApplicationUser>`:
+**[UserRepository : IUserRepository](../../Services/Identity/Identity.Infrastructure/Persistence/Repositories/UserRepository.cs)** — implements all eight `IUserRepository` methods (`ExistsByEmailAsync`, `CreateAsync`, `FindByEmailAsync`, `GetByIdAsync`, `CheckPasswordAsync`, `UpdateAsync`, `SearchByNameAsync`, `ResetPasswordAsync`) directly against `AppDbContext` + `IPasswordHasher<ApplicationUser>`:
 - `CreateAsync` hashes the password via `IPasswordHasher.HashPassword` before saving.
 - `CheckPasswordAsync` uses `IPasswordHasher.VerifyHashedPassword`, treating anything except `PasswordVerificationResult.Failed` as success (so it also accepts `SuccessRehashNeeded` without special handling).
 - `SearchByNameAsync` does a case-sensitivity-dependent `Contains` filter on `DisplayName`, ordered alphabetically — backs the new `SearchUsersByNameQuery`.
+- `ResetPasswordAsync` re-hashes the given plaintext password via `IPasswordHasher.HashPassword` and persists it directly onto the passed-in `ApplicationUser`, called from `ResetPasswordCommandHandler` — it bypasses any domain-level password-change method since `ApplicationUser` has none.
 
 **[RefreshTokenRepository : IRefreshTokenRepository](../../Services/Identity/Identity.Infrastructure/Persistence/Repositories/RefreshTokenRepository.cs)** — straightforward EF Core CRUD: `GetByTokenAsync` (`SingleOrDefaultAsync`), `SaveAsync` (`AddAsync` + `SaveChangesAsync`), `RevokeAsync` (finds and `Remove`s; no-op, no throw, if the token doesn't exist — logout/refresh-rotation calls stay idempotent).
 
@@ -181,7 +186,7 @@ Note this is a hand-rolled `DbContext`, **not** `IdentityDbContext<ApplicationUs
 
 ## 4. Identity.Api — Controllers, Middleware, Composition Root
 
-**[Identity.API.csproj](../../Services/Identity/Identity.Api/Identity.API.csproj)** (`Sdk="Microsoft.NET.Sdk.Web"`) references Application + Infrastructure, plus `Serilog.AspNetCore`, `Swashbuckle.AspNetCore`, `Microsoft.AspNetCore.OpenApi`, `AspNetCore.HealthChecks.SqlServer`, `FluentValidation.DependencyInjectionExtensions`, `MediatR`.
+**[Identity.API.csproj](../../Services/Identity/Identity.Api/Identity.API.csproj)** (`Sdk="Microsoft.NET.Sdk.Web"`) references Application + Infrastructure, plus `Serilog.AspNetCore`, `Swashbuckle.AspNetCore`, `Microsoft.AspNetCore.OpenApi`, `AspNetCore.HealthChecks.SqlServer`, `FluentValidation.DependencyInjectionExtensions`, `MediatR`. **The `Serilog.AspNetCore` reference is unused** — unlike every other service in the repo, Identity's `Program.cs` never calls `Host.UseSerilog(...)`, so logging here runs on plain `Microsoft.Extensions.Logging` (the default console provider) despite the package being present.
 
 ### Endpoints
 
@@ -189,15 +194,17 @@ Note this is a hand-rolled `DbContext`, **not** `IdentityDbContext<ApplicationUs
 POST   /api/auth/register                             → 201 Created
 POST   /api/auth/login                                → 200 OK
 POST   /api/auth/refresh                              → 200 OK
-POST   /api/auth/logout                  [Authorize]  → 204 No Content
-GET    /api/users/me                     [Authorize]  → 200 OK
-GET    /api/admin/users?name=            [RequireAdmin] → 200 OK
-POST   /api/admin/users/{id}/assign-role [RequireAdmin] → 200 OK
+POST   /api/auth/logout                   [Authorize]     → 204 No Content
+POST   /api/auth/verify-email             [Authorize]     → 200 OK
+GET    /api/users/me                      [Authorize]     → 200 OK
+GET    /api/admin/users?name=             [RequireAdmin]  → 200 OK
+POST   /api/admin/users/{id}/assign-role  [RequireAdmin]  → 200 OK
+POST   /api/admin/users/{id}/reset-password [RequireAdmin] → 200 OK
 ```
 
-**[AuthController](../../Services/Identity/Identity.Api/Controllers/AuthController.cs)** — every action is a one-liner: build/forward a MediatR request, return the mapped status code. No business logic lives here.
+**[AuthController](../../Services/Identity/Identity.Api/Controllers/AuthController.cs)** — every action is a one-liner: build/forward a MediatR request, return the mapped status code. No business logic lives here. `VerifyEmail` (added in Phase 5, alongside `VerifyEmailCommand` — see [§2](#2-identityapplication--use-cases-cqrs)) reads `userId` off the caller's own JWT claim, the same pattern `GetMe` uses below — there's no way to verify anyone's email but your own through this endpoint.
 
-**[UsersController](../../Services/Identity/Identity.Api/Controllers/UsersController.cs)** — `GetMe` reads the `userId` claim off `User` (populated by JWT auth) rather than trusting a client-supplied ID; `SearchUsers` and `AssignRole` are gated by the `RequireAdmin` policy.
+**[UsersController](../../Services/Identity/Identity.Api/Controllers/UsersController.cs)** — `GetMe` reads the `userId` claim off `User` (populated by JWT auth) rather than trusting a client-supplied ID; `SearchUsers`, `AssignRole`, and `ResetPassword` are all gated by the `RequireAdmin` policy. `ResetPassword` takes the target `{id}` from the route (not a claim) plus a `ResetPasswordRequest(NewPassword)` body — an admin resetting someone *else's* password, unlike `VerifyEmail`'s self-only shape.
 
 ### Middleware
 
@@ -210,7 +217,7 @@ POST   /api/admin/users/{id}/assign-role [RequireAdmin] → 200 OK
 | `NotFoundException` | 404 | `{ message }` |
 | `DuplicateEmailException` | 409 | `{ message }` |
 | `DomainException` (base, catch-all for Domain errors) | 400 | `{ message }` |
-| Any other `Exception` | 500 | Generic message; full exception logged via Serilog |
+| Any other `Exception` | 500 | Generic message; full exception logged via plain `ILogger<ExceptionHandlingMiddleware>` — **not** Serilog, since it's never wired up here (see [§4](#4-identityapi--controllers-middleware-composition-root)) |
 
 Catch order matters — more specific `DomainException` subtypes are caught before the base `DomainException` clause, and C# evaluates `catch` blocks top-to-bottom.
 
@@ -242,7 +249,7 @@ Catch order matters — more specific `DomainException` subtypes are caught befo
 
 **Identity.Api.Tests fixtures** ([Fixtures/](../../Services/Identity/Identity.Api.Tests/Fixtures/)):
 - `IdentityApiFactory` — the `WebApplicationFactory<Program>` subclass doing the swaps above and injecting deterministic JWT settings
-- `FakeUserRepository` / `FakeRefreshTokenRepository` — in-memory dictionary-backed fakes with `Seed()` helpers
+- `FakeUserRepository` / `FakeRefreshTokenRepository` — in-memory dictionary-backed fakes. Only `FakeUserRepository` exposes a `Seed()` helper; `FakeRefreshTokenRepository` has no such method — tests populate it, when needed, by calling its real `SaveAsync` instead
 - `JwtTokenHelper` — generates signed test JWTs matching production claim structure, so tests can authenticate as arbitrary users/roles without going through `/login`
 
 This mirrors the architecture deliberately: the closer a component is to the Domain center, the cheaper and more deterministic its tests are; the closer to the Api edge, the more the tests verify real infrastructure wiring (real SQL Server for the repository that owns the unique-token invariant, real HTTP pipeline for status-code mapping).
