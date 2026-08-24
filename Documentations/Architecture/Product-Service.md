@@ -70,7 +70,9 @@ Folders: `Entities/`, `Exceptions/` only. **Unlike Identity, there is no `Enums/
 | `Create(vendorId, name, description, price, stockQuantity, categoryId)` (static factory) | Validates via `Validate(...)`, then sets `Id = Guid.NewGuid()`, `IsActive = true`, `CreatedAt = UpdatedAt = DateTime.UtcNow`. Does **not** validate `categoryId != Guid.Empty` — that check lives in the Application-layer validator, not the entity |
 | `Update(name, description, price, stockQuantity, categoryId)` | Re-runs `Validate`, overwrites the same fields, bumps `UpdatedAt`. Deliberately cannot touch `VendorId`, `Id`, `IsActive`, or `CreatedAt` — ownership and activation state aren't mutable through this path |
 | `Deactivate()` | Soft delete: `IsActive = false`, bumps `UpdatedAt`. **There is no `Activate()`** — deactivation is one-directional in the domain model |
-| `Validate(name, price, stockQuantity)` (private, shared by `Create`/`Update`) | Throws `DomainException` on blank name, negative price, or negative stock quantity |
+| `DecrementStock(quantity)` | Named state transition (not a public setter) for stock leaving availability — cart reservations and order-confirmation checks both funnel through this. Throws `DomainException` if `quantity <= 0`; otherwise `StockQuantity = Math.Max(0, StockQuantity - quantity)` (**floors at zero rather than going negative**) and bumps `UpdatedAt` |
+| `IncrementStock(quantity)` | The symmetric restock transition — used when a cart reservation is released (item removed, or its quantity reduced). Throws `DomainException` if `quantity <= 0`; otherwise `StockQuantity += quantity`, bumps `UpdatedAt` |
+| `Validate(name, price, stockQuantity)` (private, shared by `Create`/`Update`) | Throws `DomainException` on blank name, negative price, or negative stock quantity. **Not** reused by `DecrementStock`/`IncrementStock` — those two validate only their own `quantity` argument, not the resulting `StockQuantity`, since flooring at zero is deliberate (see below) |
 
 **[Category](../../Services/Product/Product.Domain/Entities/Category.cs)** — `Id`, `Name`, `Products` (inverse navigation collection). `Create(name)` throws `DomainException("Category name is required.")` on a blank name; otherwise sets `Id = Guid.NewGuid()`, `Name = name` **without trimming**. There is no `Update`/`Rename` method anywhere in the codebase — categories are immutable once created.
 
@@ -187,9 +189,9 @@ Generic and technology-agnostic — the inversion point that lets `RedisCacheSer
 
 ---
 
-## 3. Product.Infrastructure — Persistence, Caching, JWT Settings
+## 3. Product.Infrastructure — Persistence, Caching, Messaging, JWT Settings
 
-**[Product.Infrastructure.csproj](../../Services/Product/Product.Infrastructure/Product.Infrastructure.csproj)** references Domain + Application, plus `Microsoft.EntityFrameworkCore.SqlServer`, `Microsoft.Extensions.Options`, `StackExchange.Redis`. Notably **no JWT-signing package** — Product never issues tokens, only validates them, so there's no `TokenService` here at all, just a settings POCO (below).
+**[Product.Infrastructure.csproj](../../Services/Product/Product.Infrastructure/Product.Infrastructure.csproj)** references Domain + Application + **`ShopFlow.Shared`**, plus `Microsoft.EntityFrameworkCore.SqlServer`, `Microsoft.Extensions.Options`, `StackExchange.Redis`, and — new since the stock-tracking work below — **`MassTransit.RabbitMQ`**. Notably **no JWT-signing package** — Product never issues tokens, only validates them, so there's no `TokenService` here at all, just a settings POCO (below). Product is now the third service (after Cart and Order) to touch MassTransit, and the first to both *consume* events **and** answer a request/response query in the same service.
 
 ### Persistence
 
@@ -220,11 +222,25 @@ Generic and technology-agnostic — the inversion point that lets `RedisCacheSer
 
 **[JwtSettings](../../Services/Product/Product.Infrastructure/Settings/JwtSettings.cs)** — `Secret`, `Issuer`, `Audience` only. **No `ExpiryMinutes`** — Product only validates tokens, it never mints one, so there's no expiry to configure here.
 
+### Events
+
+Product owns the authoritative `StockQuantity` for every product, but — unlike Order's `OrderEventPublisher` or Cart's `OrderPlacedConsumer` — it never *initiates* a cross-service call; it only reacts. Two consumers, both in **[Events/](../../Services/Product/Product.Infrastructure/Events/)**, both against `ShopFlow.Shared.Events` contracts:
+
+**[CartStockAdjustedConsumer : IConsumer\<CartStockAdjustedEvent\>](../../Services/Product/Product.Infrastructure/Events/CartStockAdjustedConsumer.cs)** — the mechanism behind "stock changes the moment something enters or leaves a cart." `CartStockAdjustedEvent(ProductId, QuantityDelta)` is a signed delta, not an absolute value: a positive delta means the cart took stock out of availability (`DecrementStock`), a negative delta means it gave stock back (`IncrementStock(-delta)`). A delta of exactly `0` is a genuine no-op — the consumer returns immediately without even calling `IProductRepository.GetByIdAsync`, since Cart's `UpdateCartItemCommandHandler` publishes this event only when quantity actually changes. If the product no longer exists (deleted between the cart action and this message being processed), the consumer silently returns rather than throwing — there is no dead-lettering or logging of that case today.
+
+**[CheckStockConsumer : IConsumer\<CheckStockRequest\>](../../Services/Product/Product.Infrastructure/Events/CheckStockConsumer.cs)** — the read-only counterpart, answering Order's confirmation-time availability question via MassTransit **request/response** rather than fire-and-forget. For every `OrderItemDto` in the request, it loads the product and checks `product.StockQuantity < item.Quantity`; a missing product also counts as insufficient. It responds with exactly one `CheckStockResponse(IsAvailable, InsufficientProductIds)` — `IsAvailable` is `true` only if every single item had enough stock, and `InsufficientProductIds` names every item that didn't (not just the first one found), so a caller can report all the problems in a single round trip rather than discovering them one at a time.
+
+**Why stock isn't decremented again at order confirmation**: an earlier iteration of this design had Product consume `OrderPlacedEvent` directly and decrement stock at confirmation time — the same event Cart's own `OrderPlacedConsumer` uses to clear the cart. That was replaced by the pair above once cart mutations became the actual reservation point: decrementing again at confirmation would double-count the same units for the ordinary cart→confirm flow, since every item reaching `ConfirmOrderCommand` was already reserved when it was added to the cart. **Product has no `OrderPlacedEvent` consumer of its own at all** — a real asymmetry with Cart and Notification, both of which do consume it (see [06-rabbitmq-masstransit.md](../knowledge-hub/06-rabbitmq-masstransit.md)).
+
+**Registered in `Program.cs`**: `AddConsumer<CartStockAdjustedConsumer>()` + `AddConsumer<CheckStockConsumer>()`, bound to `product-cart-stock-adjusted-queue` and `product-check-stock-queue` respectively, each with the same `UseMessageRetry(r => r.Exponential(3, 1s, 10s, 2s))` policy Cart and Order already use. `CheckStockConsumer` needs no `AddRequestClient` registration on this side — that's purely a caller-side (Order) concern; the consumer just responds on whatever the request's own reply-to address is.
+
+**No DB-level concurrency protection**: `ProductRepository.UpdateAsync` (see [§3 above](#3-productinfrastructure--persistence-caching-messaging-jwt-settings)) is still a plain read-modify-write, same as every other write path in this service. Two `CartStockAdjustedEvent`s for the same product processed concurrently can still lose an update to each other — reserving-at-cart-time narrows the oversell window considerably (see [Order-Service.md §2](../Architecture/Order-Service.md#2-orderapplication--use-cases-cqrs)) but does not close it at the database level. This is a known, accepted gap, not an oversight.
+
 ---
 
 ## 4. Product.Api — Controllers, Middleware, Composition Root
 
-**[Product.API.csproj](../../Services/Product/Product.Api/Product.API.csproj)** (`Sdk="Microsoft.NET.Sdk.Web"`) references Application + Infrastructure, plus `Serilog.AspNetCore`, `Swashbuckle.AspNetCore`, `Microsoft.AspNetCore.OpenApi`, `AspNetCore.HealthChecks.SqlServer`, `AspNetCore.HealthChecks.Redis`, `FluentValidation.DependencyInjectionExtensions`, `MediatR`, `Microsoft.AspNetCore.Authentication.JwtBearer`.
+**[Product.API.csproj](../../Services/Product/Product.Api/Product.API.csproj)** (`Sdk="Microsoft.NET.Sdk.Web"`) references Application + Infrastructure, plus `Serilog.AspNetCore`, `Swashbuckle.AspNetCore`, `Microsoft.AspNetCore.OpenApi`, `AspNetCore.HealthChecks.SqlServer`, `AspNetCore.HealthChecks.Redis`, `FluentValidation.DependencyInjectionExtensions`, `MediatR`, `Microsoft.AspNetCore.Authentication.JwtBearer`, and now `MassTransit.RabbitMQ`.
 
 `Program.cs` calls `UseSerilog(...)` (console sink, reading the `Serilog` section of `appsettings.json`) plus `UseSerilogRequestLogging()`, so the referenced `Serilog.AspNetCore` package is actually wired up rather than sitting unused.
 
@@ -271,9 +287,10 @@ Same catch-order discipline as Identity (subtype before base). Unlike Identity, 
 - Registers `IProductRepository`, `ICategoryRepository`, `ICacheService` as **Scoped** — including `RedisCacheService`, even though it just wraps the Singleton multiplexer.
 - Registers MediatR scanning `Product.Application`.
 - Registers FluentValidation scanning the same assembly; adds `ValidationBehavior<,>` then `LoggingBehavior<,>` as open-generic `IPipelineBehavior<,>`.
+- **`AddMassTransit`**: `AddConsumer<CartStockAdjustedConsumer>()` + `AddConsumer<CheckStockConsumer>()`; `UsingRabbitMq` bound to `RabbitMQ:Host`/`User`/`Pass` config (falling back to `localhost`/`guest`/`guest`, the same fallback every other service uses); two `ReceiveEndpoint`s — `product-cart-stock-adjusted-queue` and `product-check-stock-queue` — each with the standard 3-attempt exponential retry. See [§3](#3-productinfrastructure--persistence-caching-messaging-jwt-settings) for what each consumer does.
 - Configures JWT Bearer auth the same lazy way as Identity (`AddOptions<JwtBearerOptions>(...).Configure<IOptions<JwtSettings>>(...)`) specifically so `WebApplicationFactory` config overrides in tests take effect; `ClockSkew = TimeSpan.Zero` (no grace period on token expiry).
 - Registers exactly two authorization policies — `RequireVendor`, `RequireAdmin` (role checks only). **No `RequireVerifiedEmail`** — Product has no email-verification concept.
-- Registers `/health` against **both** SQL Server and Redis (Identity checks SQL Server only, since it has no Redis dependency).
+- Registers `/health` against **both** SQL Server and Redis (Identity checks SQL Server only, since it has no Redis dependency). **Still no RabbitMQ health check** — unlike Order (`AspNetCore.HealthChecks.Rabbitmq`), Product doesn't reference that package, so a broker outage isn't reflected in `/health` even though the service now depends on RabbitMQ at runtime for both stock consumers.
 - **Dev-only startup block**: `db.Database.EnsureCreated()`, **then seeds categories** from the `CategorySeed` array in configuration (`appsettings.Development.json`: `Electronics`, `Clothing`, `Home & Kitchen`, `Books`, `Toys & Games`) — each name added via `Category.Create(name)` only if a category with that exact name doesn't already exist, then one `SaveChanges()`. Comparable in spirit to Identity's dev-seed block (which seeds an admin account instead), just seeding catalog data rather than a user.
 - `public partial class Program` at the bottom, for `WebApplicationFactory<Program>`.
 
@@ -285,7 +302,7 @@ Same catch-order discipline as Identity (subtype before base). Unlike Identity, 
 | --- | --- | --- | --- |
 | **Product.Domain.Tests** | `Product.Domain` | Pure unit, no mocks — `ProductTests`, `CategoryTests` exercise `Create`/`Update`/`Deactivate`/`Validate` directly | xunit, FluentAssertions |
 | **Product.Application.Tests** | `Product.Application` | Handlers/validators/behaviors tested against **NSubstitute** mocks of `IProductRepository`/`ICategoryRepository`/`ICacheService` — no DB, no HTTP | + NSubstitute, FluentValidation, Microsoft.Extensions.Logging.Abstractions |
-| **Product.Infrastructure.Tests** | `Product.Infrastructure` | `ProductRepositoryTests` against a **real SQL Server** via Testcontainers *and* `RedisCacheServiceTests` against a **real Redis** via Testcontainers — a step beyond Identity.Infrastructure.Tests, which only spins up SQL Server (Identity has no cache to test) | + NSubstitute, **Testcontainers.MsSql**, **Testcontainers.Redis** |
+| **Product.Infrastructure.Tests** (15 tests) | `Product.Infrastructure` | `ProductRepositoryTests` against a **real SQL Server** via Testcontainers *and* `RedisCacheServiceTests` against a **real Redis** via Testcontainers, **plus** `CartStockAdjustedConsumerTests` (4) and `CheckStockConsumerTests` (3) against an **in-process MassTransit test harness** — no broker, no container, for either | + NSubstitute, **Testcontainers.MsSql**, **Testcontainers.Redis**, MassTransit(.Testing), ShopFlow.Shared |
 | **Product.Api.Tests** | Full stack via `Product.Api` | End-to-end HTTP tests through `WebApplicationFactory`, with `AppDbContext` swapped for **EF Core InMemory** and `IProductRepository`/`ICategoryRepository`/`ICacheService` swapped for in-memory fakes | + Microsoft.AspNetCore.Mvc.Testing, EF Core InMemory |
 
 **Product.Api.Tests fixtures** ([Fixtures/](../../Services/Product/Product.Api.Tests/Fixtures/)):
@@ -331,6 +348,8 @@ This mirrors Identity's test strategy exactly: cheap and deterministic near Doma
 │            │  Product.Domain  │                                 │
 │            └──────────────────┘                                 │
 │                  (no deps)                                       │
+│                                                                   │
+│   Product.Infra also refs ──► Shared/ShopFlow.Shared (events)    │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -338,7 +357,7 @@ This mirrors Identity's test strategy exactly: cheap and deterministic near Doma
 | --- | --- |
 | `Product.Domain` | — |
 | `Product.Application` | `Product.Domain` |
-| `Product.Infrastructure` | `Product.Domain` + `Product.Application` |
+| `Product.Infrastructure` | `Product.Domain` + `Product.Application` + `ShopFlow.Shared` |
 | `Product.API` | `Product.Application` + `Product.Infrastructure` |
 | `Product.Domain.Tests` | `Product.Domain` |
 | `Product.Application.Tests` | `Product.Application` |
@@ -362,6 +381,20 @@ This mirrors Identity's test strategy exactly: cheap and deterministic near Doma
 
 Every arrow that crosses a layer boundary crosses through an interface owned by the *inner* layer, exactly as in Identity's request-flow trace — the concrete cache/database technology is always supplied from further out.
 
+Compare with the two event-driven flows that now touch `StockQuantity` without any HTTP request into Product at all:
+
+**Cart mutates stock (add/update/remove an item):**
+1. Cart Service publishes `CartStockAdjustedEvent(productId, delta)` after its own Redis write succeeds — see [Cart-Service.md §3](../Architecture/Cart-Service.md#3-cartinfrastructure--redis-persistence-event-consumer-jwt-settings).
+2. **Infrastructure**: MassTransit's `product-cart-stock-adjusted-queue` delivers it to `CartStockAdjustedConsumer.Consume`.
+3. The consumer loads the product via `IProductRepository.GetByIdAsync`, calls `product.DecrementStock(delta)` or `product.IncrementStock(-delta)` (**Domain**), then `IProductRepository.UpdateAsync` (**Infrastructure**) — bypassing MediatR, Application, and Api entirely, the same shortcut Cart's own `OrderPlacedConsumer` takes in reverse.
+
+**Order asks whether stock is still sufficient (confirmation):**
+1. Order Service's `ConfirmOrderCommandHandler` sends `CheckStockRequest(items)` via `IRequestClient<CheckStockRequest>` — see [Order-Service.md §2](../Architecture/Order-Service.md#2-orderapplication--use-cases-cqrs) — and waits for the reply (10-second timeout).
+2. **Infrastructure**: `CheckStockConsumer.Consume` loads every requested product, compares stock to requested quantity, and `context.RespondAsync`s a `CheckStockResponse(IsAvailable, InsufficientProductIds)`.
+3. Order's handler blocks confirmation entirely if `IsAvailable` is `false` — no stock is touched by this exchange, it's purely a read.
+
+Both flows skip the HTTP/MediatR path the way Cart's `OrderPlacedConsumer` does — there's no controller action and no caller-facing validation contract for either.
+
 ---
 
 ## 7. Configuration & Running
@@ -369,13 +402,14 @@ Every arrow that crosses a layer boundary crosses through an interface owned by 
 Connection strings, Redis address, and JWT settings all live in [appsettings.Development.json](../../Services/Product/Product.Api/appsettings.Development.json) — note the base `appsettings.json` has no connection strings or JWT secret at all, so the service only really runs in `Development` today (no production config file exists yet). Full run instructions are in [Documentations/RUNNING.md](../RUNNING.md); summary:
 
 ```bash
-docker compose up -d sqlserver redis
+docker compose up -d sqlserver redis rabbitmq
 dotnet run --project Services/Product/Product.Api
 ```
 
-- API: `http://localhost:5015` in Identity's case, `http://localhost:5016` here; Swagger: `/swagger`; health: `/health` (SQL Server + Redis, both checked)
+- API: `http://localhost:5015` in Identity's case, `http://localhost:5016` here; Swagger: `/swagger`; health: `/health` (SQL Server + Redis, both checked — **not** RabbitMQ, see [§4](#4-productapi--controllers-middleware-composition-root))
 - Dev environments seed five categories automatically (`Electronics`, `Clothing`, `Home & Kitchen`, `Books`, `Toys & Games`) — a product can reference one of these immediately, with no manual `POST /api/categories` call needed first
-- `dotnet test ShopFlow.sln` — note `Product.Infrastructure.Tests` needs Docker running (Testcontainers spins up **both** SQL Server and Redis, one container each)
+- **RabbitMQ is now a hard runtime dependency**, not just Product's own opt-in — `docker-compose.yml`'s `product-service` block gained `RabbitMQ__Host`/`User`/`Pass` env vars and a `depends_on: rabbitmq` entry alongside the pre-existing `sqlserver`/`redis` ones, the same shape Cart's and Order's blocks already had
+- `dotnet test ShopFlow.sln` — note `Product.Infrastructure.Tests` needs Docker running for **both** SQL Server and Redis (Testcontainers, one container each); the two MassTransit-consumer test classes need no broker at all, same in-process harness as Cart/Order
 
 ---
 
@@ -385,5 +419,5 @@ dotnet run --project Services/Product/Product.Api
 | --- | --- |
 | `Product.Domain` | What is a valid product/category state, and what operations can change it? |
 | `Product.Application` | What does the system do for each catalog use case — and when does the cache get invalidated or bypassed? |
-| `Product.Infrastructure` | How is that fulfilled — SQL Server, Redis, JWT validation settings? |
+| `Product.Infrastructure` | How is that fulfilled — SQL Server, Redis, two MassTransit consumers (one reacting to cart mutations, one answering Order's availability question), JWT validation settings? |
 | `Product.Api` | How is it exposed over HTTP, how do failures become status codes, and how is everything wired together at startup? |

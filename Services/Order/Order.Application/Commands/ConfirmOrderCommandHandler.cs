@@ -11,11 +11,16 @@ public class ConfirmOrderCommandHandler : IRequestHandler<ConfirmOrderCommand, O
 {
     private readonly IOrderRepository _orderRepository;
     private readonly IOrderEventPublisher _orderEventPublisher;
+    private readonly IStockAvailabilityChecker _stockAvailabilityChecker;
 
-    public ConfirmOrderCommandHandler(IOrderRepository orderRepository, IOrderEventPublisher orderEventPublisher)
+    public ConfirmOrderCommandHandler(
+        IOrderRepository orderRepository,
+        IOrderEventPublisher orderEventPublisher,
+        IStockAvailabilityChecker stockAvailabilityChecker)
     {
         _orderRepository = orderRepository;
         _orderEventPublisher = orderEventPublisher;
+        _stockAvailabilityChecker = stockAvailabilityChecker;
     }
 
     public async Task<OrderDto> Handle(ConfirmOrderCommand command, CancellationToken ct)
@@ -25,6 +30,13 @@ public class ConfirmOrderCommandHandler : IRequestHandler<ConfirmOrderCommand, O
 
         if (order.CustomerId != command.CustomerId)
             throw new NotFoundException(nameof(OrderEntity), command.OrderId);
+
+        var stockAvailability = await _stockAvailabilityChecker.CheckAsync(order.OrderItems, ct);
+        if (!stockAvailability.IsAvailable)
+        {
+            throw new DomainException(
+                $"Insufficient stock for product(s): {string.Join(", ", stockAvailability.InsufficientProductIds)}.");
+        }
 
         order.Confirm();
 

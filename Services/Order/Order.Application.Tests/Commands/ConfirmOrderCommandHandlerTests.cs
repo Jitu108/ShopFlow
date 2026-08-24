@@ -12,11 +12,16 @@ public class ConfirmOrderCommandHandlerTests
 {
     private readonly IOrderRepository _orderRepository = Substitute.For<IOrderRepository>();
     private readonly IOrderEventPublisher _orderEventPublisher = Substitute.For<IOrderEventPublisher>();
+    private readonly IStockAvailabilityChecker _stockAvailabilityChecker = Substitute.For<IStockAvailabilityChecker>();
     private readonly ConfirmOrderCommandHandler _handler;
 
     public ConfirmOrderCommandHandlerTests()
     {
-        _handler = new ConfirmOrderCommandHandler(_orderRepository, _orderEventPublisher);
+        _stockAvailabilityChecker
+            .CheckAsync(Arg.Any<IReadOnlyList<OrderItemEntity>>(), Arg.Any<CancellationToken>())
+            .Returns(new StockAvailabilityResult(true, []));
+
+        _handler = new ConfirmOrderCommandHandler(_orderRepository, _orderEventPublisher, _stockAvailabilityChecker);
     }
 
     private static OrderEntity ValidOrder(Guid customerId) => OrderEntity.Create(
@@ -90,5 +95,25 @@ public class ConfirmOrderCommandHandlerTests
         var act = async () => await _handler.Handle(command, default);
 
         await act.Should().ThrowAsync<DomainException>();
+    }
+
+    [Fact]
+    public async Task Handle_WhenStockInsufficient_ShouldThrowDomainException_AndNotConfirmOrPublish()
+    {
+        var customerId = Guid.NewGuid();
+        var order = ValidOrder(customerId);
+        var command = new ConfirmOrderCommand(order.Id, customerId);
+
+        _orderRepository.GetByIdAsync(order.Id, default).Returns(order);
+        _stockAvailabilityChecker
+            .CheckAsync(Arg.Any<IReadOnlyList<OrderItemEntity>>(), default)
+            .Returns(new StockAvailabilityResult(false, [order.OrderItems[0].ProductId]));
+
+        var act = async () => await _handler.Handle(command, default);
+
+        await act.Should().ThrowAsync<DomainException>();
+        order.Status.Should().Be(OrderStatus.Pending);
+        await _orderRepository.DidNotReceive().UpdateAsync(Arg.Any<OrderEntity>(), default);
+        await _orderEventPublisher.DidNotReceive().PublishOrderPlacedAsync(Arg.Any<OrderEntity>(), default);
     }
 }

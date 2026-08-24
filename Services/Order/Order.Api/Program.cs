@@ -18,6 +18,7 @@ using Order.Infrastructure.Persistence.Repositories;
 using Order.Infrastructure.Settings;
 using RabbitMQ.Client;
 using Serilog;
+using ShopFlow.Shared.Events;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,6 +43,7 @@ builder.Services.AddDbContext<AppDbContext>(opts =>
 
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IOrderEventPublisher, OrderEventPublisher>();
+builder.Services.AddScoped<IStockAvailabilityChecker, StockAvailabilityChecker>();
 
 // ── MediatR ───────────────────────────────────────────────────────────────────
 
@@ -58,6 +60,7 @@ builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehavi
 
 builder.Services.AddMassTransit(x =>
 {
+    x.AddRequestClient<CheckStockRequest>(TimeSpan.FromSeconds(10));
     x.UsingRabbitMq((ctx, cfg) =>
     {
         cfg.Host(builder.Configuration["RabbitMQ:Host"] ?? "localhost", "/", h =>

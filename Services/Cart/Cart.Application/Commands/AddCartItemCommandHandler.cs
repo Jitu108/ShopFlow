@@ -7,10 +7,12 @@ namespace Cart.Application.Commands;
 public class AddCartItemCommandHandler : IRequestHandler<AddCartItemCommand, CartItemDto>
 {
     private readonly ICartRepository _cartRepository;
+    private readonly ICartEventPublisher _cartEventPublisher;
 
-    public AddCartItemCommandHandler(ICartRepository cartRepository)
+    public AddCartItemCommandHandler(ICartRepository cartRepository, ICartEventPublisher cartEventPublisher)
     {
         _cartRepository = cartRepository;
+        _cartEventPublisher = cartEventPublisher;
     }
 
     public async Task<CartItemDto> Handle(AddCartItemCommand command, CancellationToken ct)
@@ -25,6 +27,7 @@ public class AddCartItemCommandHandler : IRequestHandler<AddCartItemCommand, Car
 
         var item = new CartItemDto(command.ProductId, command.ProductName, command.UnitPrice, quantity);
         await _cartRepository.UpsertItemAsync(command.UserId, item, ct);
+        await _cartEventPublisher.PublishStockAdjustedAsync(command.ProductId, command.Quantity, ct);
 
         return item;
     }
