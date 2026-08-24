@@ -10,7 +10,7 @@ The Cart Service is made up of eight .NET projects — four production projects 
 | --- | --- | --- |
 | `Cart.Domain` | Only exceptions — `DomainException`, `NotFoundException`. **No `Entities/` folder, no enums** | A cart item is a plain data record with no invariants of its own; quantity/price/name validation lives in FluentValidation at the Application boundary instead. |
 | `Cart.Application` | The use cases — add/update/remove a cart item, clear the cart, get the cart — each as a MediatR command/query + handler, plus validators and the `ICartRepository` interface | Where the cart workflow lives, including the cumulative-add-to-cart rule and the update-vs-upsert distinction. |
-| `Cart.Infrastructure` | The concrete technology: a Redis Hash per user via StackExchange.Redis, a MassTransit/RabbitMQ consumer that reacts to `OrderPlacedEvent`, JWT *validation* settings | Makes the use cases work against real storage and a real message bus, behind the interfaces Application declared. Like Product.Infrastructure, this layer signs nothing — it only validates tokens Identity already signed. |
+| `Cart.Infrastructure` | The concrete technology: a Redis Hash per user via StackExchange.Redis, a MassTransit/RabbitMQ consumer that reacts to `OrderPlacedEvent`, a **publisher** that announces `CartStockAdjustedEvent` for Product to react to, JWT *validation* settings | Makes the use cases work against real storage and a real message bus, behind the interfaces Application declared. Like Product.Infrastructure, this layer signs nothing — it only validates tokens Identity already signed. Cart is now a two-way MassTransit participant, not just a consumer. |
 | `Cart.Api` | The ASP.NET Core host — controller, exception-to-HTTP-status middleware, and the `Program.cs` composition root | The only project any client or other service talks to. |
 
 **How they're related, and why:**
@@ -103,12 +103,12 @@ A plain record, not a class with private setters/factory methods — there are n
 
 | Command | Returns | Handler responsibility |
 | --- | --- | --- |
-| `AddCartItemCommand(UserId, ProductId, ProductName, UnitPrice, Quantity)` | `CartItemDto` | Loads the current cart; **if the product is already present, adds the new quantity to the existing quantity** (cumulative add-to-cart, not overwrite); builds a fresh `CartItemDto` with the combined quantity; `UpsertItemAsync`. `ProductName`/`UnitPrice` from the *new* request always win — an existing item's stale name/price gets silently refreshed on every add |
-| `UpdateCartItemCommand(UserId, ProductId, Quantity)` | `CartItemDto` | Loads the cart; throws `NotFoundException` if the product **isn't already present** — update is deliberately not an upsert; otherwise `existing with { Quantity = command.Quantity }` (a full overwrite of quantity, not an add) |
-| `RemoveCartItemCommand(UserId, ProductId)` | *(none — `IRequest`)* | Forwards straight to `ICartRepository.RemoveItemAsync` — **idempotent**, removing an already-absent product is a no-op, not an error |
-| `ClearCartCommand(UserId)` | *(none — `IRequest`)* | Forwards straight to `ICartRepository.ClearCartAsync` — deletes the whole `cart:{userId}` key |
+| `AddCartItemCommand(UserId, ProductId, ProductName, UnitPrice, Quantity)` | `CartItemDto` | Loads the current cart; **if the product is already present, adds the new quantity to the existing quantity** (cumulative add-to-cart, not overwrite); builds a fresh `CartItemDto` with the combined quantity; `UpsertItemAsync`; then `ICartEventPublisher.PublishStockAdjustedAsync(productId, command.Quantity, ct)` — **the delta published is always the newly-requested quantity, never the combined total**, since that's the amount actually leaving availability this call. `ProductName`/`UnitPrice` from the *new* request always win — an existing item's stale name/price gets silently refreshed on every add |
+| `UpdateCartItemCommand(UserId, ProductId, Quantity)` | `CartItemDto` | Loads the cart; throws `NotFoundException` if the product **isn't already present** — update is deliberately not an upsert; otherwise `existing with { Quantity = command.Quantity }` (a full overwrite of quantity, not an add); `UpsertItemAsync`; then publishes `command.Quantity - existing.Quantity` as the delta — **positive** if the caller raised the quantity (more stock reserved), **negative** if they lowered it (stock released back), and **skipped entirely** if the quantity didn't actually change |
+| `RemoveCartItemCommand(UserId, ProductId)` | *(none — `IRequest`)* | Loads the cart first (a new read that didn't exist before stock tracking), then forwards to `ICartRepository.RemoveItemAsync` — still **idempotent**, removing an already-absent product is a no-op, not an error; if the product *was* present, publishes `-existing.Quantity` (the full reserved amount comes back) — if it wasn't present, no event is published at all, since nothing was ever reserved to release |
+| `ClearCartCommand(UserId)` | *(none — `IRequest`)* | Forwards straight to `ICartRepository.ClearCartAsync` — deletes the whole `cart:{userId}` key. **Does not publish any stock-adjustment event** — a real, deliberate gap: clearing the cart does not currently release the stock every item in it had reserved (see [§3](#3-cartinfrastructure--redis-persistence-event-consumer-jwt-settings)) |
 
-`RemoveCartItemCommandHandler`/`ClearCartCommandHandler` are one-line pass-throughs with no branching at all — the "business logic" for those two operations lives entirely in the repository.
+`ClearCartCommandHandler` is still a one-line pass-through with no branching. `RemoveCartItemCommandHandler` no longer is, now that it has to read the cart before it can know how much to release.
 
 ### Queries + Handlers
 
@@ -151,6 +151,17 @@ public interface ICartRepository
 
 Four methods total — smaller than either `IProductRepository` or `ICategoryRepository`, since there's no separate add/update split at the repository level: both `AddCartItemCommandHandler` and `UpdateCartItemCommandHandler` funnel through the same `UpsertItemAsync`. The keyed-by-`Guid` dictionary return type (rather than a flat list) is deliberate — it's exactly the shape both `AddCartItemCommandHandler` and `UpdateCartItemCommandHandler` need for an O(1) `TryGetValue` lookup by `ProductId`.
 
+**[ICartEventPublisher](../../Services/Cart/Cart.Application/Interfaces/ICartEventPublisher.cs)** — the newest interface in this layer, and the one exception to "Cart.Application never references `ShopFlow.Shared`":
+
+```csharp
+public interface ICartEventPublisher
+{
+    Task PublishStockAdjustedAsync(Guid productId, int quantityDelta, CancellationToken ct);
+}
+```
+
+Deliberately shaped like `IOrderEventPublisher` in Order — a plain `(Guid, int, CancellationToken)` signature, not the raw `CartStockAdjustedEvent` record itself, so `Cart.Application` still never needs to reference `ShopFlow.Shared` (that stays confined to `Cart.Infrastructure`'s implementation, [§3](#3-cartinfrastructure--redis-persistence-event-consumer-jwt-settings) below) — the same inversion Order's Abstract section already documents.
+
 ---
 
 ## 3. Cart.Infrastructure — Redis Persistence, Event Consumer, JWT Settings
@@ -174,6 +185,23 @@ Four methods total — smaller than either `IProductRepository` or `ICategoryRep
 ### Events
 
 **[OrderPlacedConsumer : IConsumer\<OrderPlacedEvent\>](../../Services/Cart/Cart.Infrastructure/Events/OrderPlacedConsumer.cs)** — the entire handler is one line: `ICartRepository.ClearCartAsync(context.Message.CustomerId, ...)`. Deliberately minimal — no side effects beyond clearing the cart, no acknowledgement event published back, no filtering by order status (any `OrderPlacedEvent`, regardless of what it contains, clears that customer's cart in full).
+
+**[CartEventPublisher : ICartEventPublisher](../../Services/Cart/Cart.Infrastructure/Events/CartEventPublisher.cs)** — the new counterpart, and the first time Cart *publishes* rather than only consumes:
+
+```csharp
+public class CartEventPublisher : ICartEventPublisher
+{
+    private readonly IPublishEndpoint _publishEndpoint;
+    public CartEventPublisher(IPublishEndpoint publishEndpoint) => _publishEndpoint = publishEndpoint;
+
+    public async Task PublishStockAdjustedAsync(Guid productId, int quantityDelta, CancellationToken ct)
+        => await _publishEndpoint.Publish(new CartStockAdjustedEvent(productId, quantityDelta), ct);
+}
+```
+
+One line, same shape as `OrderEventPublisher` in Order — the entire method is the mapping from the Application-layer interface call to the wire-format record. `CartStockAdjustedEvent(ProductId, QuantityDelta)` is defined in `ShopFlow.Shared.Events` alongside `OrderPlacedEvent`; Product's `CartStockAdjustedConsumer` is the sole subscriber (see [Product-Service.md §3](../Architecture/Product-Service.md#3-productinfrastructure--persistence-caching-messaging-jwt-settings)).
+
+**Known gap — `ClearCartCommand` doesn't release anything**: unlike `AddCartItemCommand`/`UpdateCartItemCommand`/`RemoveCartItemCommand`, clearing the whole cart via `DELETE /api/cart` publishes no `CartStockAdjustedEvent` at all for any of the items being cleared. Every unit those items had reserved in Product stays reserved — a real, currently-unclosed leak, distinct from (and not to be confused with) the natural 7-day TTL expiry described below, which also never publishes a release event when a cart quietly expires unread.
 
 **Important dependency-version deviation**: `MassTransit.RabbitMQ` is pinned to **`8.5.10`** across both `Cart.Infrastructure` and `Cart.Api`, not the `9.2.0` that was the latest stable at planning time. `9.0.0` introduced a mandatory commercial license (`MassTransit.ConfigurationException: License must be specified...`) that this project doesn't hold, discovered during a Docker smoke test. Per [Phase4.md](../Phases/Phase4.md), **future services (Order, Notification) must stay on `8.5.10`** too unless a MassTransit license is acquired.
 
@@ -219,9 +247,9 @@ Same catch-order discipline (subtype before base) as every other service. No 401
 
 - Binds `JwtSettings` from configuration.
 - Registers `IConnectionMultiplexer` as a **Singleton** (`ConnectionMultiplexer.Connect(...)`, falling back to `"localhost:6379"`) — same pattern as Product's Redis registration, but here it's the *only* store, not a cache in front of one.
-- Registers `ICartRepository` as **Scoped** (`RedisCartRepository`).
+- Registers `ICartRepository` as **Scoped** (`RedisCartRepository`), and now `ICartEventPublisher` as **Scoped** (`CartEventPublisher`) alongside it.
 - Registers MediatR scanning `Cart.Application`; FluentValidation scanning the same assembly; `ValidationBehavior<,>` then `LoggingBehavior<,>` as open-generic `IPipelineBehavior<,>`.
-- **`AddMassTransit`**: `AddConsumer<OrderPlacedConsumer>()`; `UsingRabbitMq` bound to `RabbitMQ:Host`/`User`/`Pass` config (falling back to `localhost`/`guest`/`guest`); `ReceiveEndpoint("order-placed-queue", ...)` with `UseMessageRetry(r => r.Exponential(3, 1s, 10s, 2s))` — three retries, exponential backoff between 1 and 10 seconds with a 2-second step. This is the only service-level messaging concern in ShopFlow documented so far — neither Identity nor Product consumes or publishes anything.
+- **`AddMassTransit`**: `AddConsumer<OrderPlacedConsumer>()`; `UsingRabbitMq` bound to `RabbitMQ:Host`/`User`/`Pass` config (falling back to `localhost`/`guest`/`guest`); `ReceiveEndpoint("order-placed-queue", ...)` with `UseMessageRetry(r => r.Exponential(3, 1s, 10s, 2s))` — three retries, exponential backoff between 1 and 10 seconds with a 2-second step. **`CartEventPublisher` needs no additional registration here** — publishing only needs `IPublishEndpoint`, which `AddMassTransit` already provides regardless of which consumers are configured, so the block's shape is otherwise unchanged even though Cart now publishes as well as consumes.
 - Configures JWT Bearer auth the same lazy way as Identity/Product (`AddOptions<JwtBearerOptions>(...).Configure<IOptions<JwtSettings>>(...)`, so `WebApplicationFactory` config overrides take effect in tests); `ClockSkew = TimeSpan.Zero`.
 - `AddAuthorization()` with **no named policies at all** — a first among the three services documented so far; Identity and Product both register at least `RequireVendor`/`RequireAdmin`.
 - Registers `/health` against **Redis only** — no SQL Server check exists to add.
@@ -235,12 +263,12 @@ Same catch-order discipline (subtype before base) as every other service. No 401
 | Test project | Targets | Style | Notable packages |
 | --- | --- | --- | --- |
 | **Cart.Domain.Tests** (1 test) | `Cart.Domain` | Pure unit, no mocks — `NotFoundExceptionTests` checks message formatting only. The smallest Domain.Tests project in ShopFlow so far, proportional to the smallest Domain layer | xunit, FluentAssertions |
-| **Cart.Application.Tests** (23 tests) | `Cart.Application` | Handlers/validators/behaviors tested against **NSubstitute** mocks of `ICartRepository` — no Redis, no HTTP. Covers both command handlers' branching (new-item vs. existing-item for Add; found vs. not-found for Update) plus `RemoveCartItemCommandHandlerTests`, `ClearCartCommandHandlerTests`, `GetCartQueryHandlerTests` (empty + populated), both validators, `ValidationBehaviorTests`, `LoggingBehaviorTests` | + NSubstitute, FluentValidation, Microsoft.Extensions.Logging.Abstractions |
-| **Cart.Infrastructure.Tests** (6 tests) | `Cart.Infrastructure` | `RedisCartRepositoryTests` (5) against a **real Redis** via `Testcontainers.Redis` — roundtrip, upsert-in-place doesn't duplicate hash fields, remove leaves sibling items intact, clear removes the whole key, TTL is ~7 days on write. `OrderPlacedConsumerTests` (1) spins up a real **in-process MassTransit bus** via `AddMassTransitTestHarness`, publishes an `OrderPlacedEvent`, and asserts `ICartRepository.ClearCartAsync` (an NSubstitute mock here, not real Redis) was called for that event's `CustomerId`. **No SQL Server container at all** — the one Infrastructure.Tests project in ShopFlow so far that needs Docker for only a single technology | + NSubstitute, **Testcontainers.Redis**, MassTransit(.Testing) |
+| **Cart.Application.Tests** (29 tests) | `Cart.Application` | Handlers/validators/behaviors tested against **NSubstitute** mocks of `ICartRepository` **and now `ICartEventPublisher`** — no Redis, no HTTP. Covers both command handlers' branching (new-item vs. existing-item for Add; found vs. not-found for Update) plus `RemoveCartItemCommandHandlerTests`, `ClearCartCommandHandlerTests`, `GetCartQueryHandlerTests` (empty + populated), both validators, `ValidationBehaviorTests`, `LoggingBehaviorTests` — **plus 6 new tests asserting the exact delta published** by Add (always the newly-requested quantity), Update (positive/negative/skipped-when-unchanged), and Remove (negative of the removed quantity, or not published at all if the item wasn't in the cart) | + NSubstitute, FluentValidation, Microsoft.Extensions.Logging.Abstractions |
+| **Cart.Infrastructure.Tests** (7 tests) | `Cart.Infrastructure` | `RedisCartRepositoryTests` (5) against a **real Redis** via `Testcontainers.Redis` — roundtrip, upsert-in-place doesn't duplicate hash fields, remove leaves sibling items intact, clear removes the whole key, TTL is ~7 days on write. `OrderPlacedConsumerTests` (1) and the new `CartEventPublisherTests` (1) both spin up a real **in-process MassTransit bus** via `AddMassTransitTestHarness` — the consumer test publishes an `OrderPlacedEvent` and asserts `ICartRepository.ClearCartAsync` (an NSubstitute mock here, not real Redis) was called for that event's `CustomerId`; the publisher test does the reverse, calling `CartEventPublisher.PublishStockAdjustedAsync` directly and asserting via `harness.Published.Any<CartStockAdjustedEvent>()` that the right product/delta went out. **No SQL Server container at all** — the one Infrastructure.Tests project in ShopFlow so far that needs Docker for only a single technology | + NSubstitute, **Testcontainers.Redis**, MassTransit(.Testing) |
 | **Cart.Api.Tests** (10 tests) | Full stack via `Cart.Api` | End-to-end HTTP tests through `WebApplicationFactory`, `ICartRepository` swapped for an in-memory fake, MassTransit swapped for its test harness so no test ever dials a real broker | + Microsoft.AspNetCore.Mvc.Testing |
 
 **Cart.Api.Tests fixtures** ([Fixtures/](../../Services/Cart/Cart.Api.Tests/Fixtures/)):
-- `CartApiFactory` — the `WebApplicationFactory<Program>` subclass; overrides `JwtSettings` + `ConnectionStrings:Redis` config, swaps `ICartRepository` → `FakeCartRepository` (Singleton, exposed as a public property so tests can inspect it). Its most distinctive step, with no equivalent in Identity or Product: it walks the registered service collection and **removes every descriptor whose service/implementation type lives under the `MassTransit` namespace** — the real `AddMassTransit(...).UsingRabbitMq(...)` call in `Program.cs` would otherwise try to dial a real broker the moment the test host starts — then re-adds `AddMassTransitTestHarness` with the same `OrderPlacedConsumer` registered against the in-memory test transport.
+- `CartApiFactory` — the `WebApplicationFactory<Program>` subclass; overrides `JwtSettings` + `ConnectionStrings:Redis` config, swaps `ICartRepository` → `FakeCartRepository` (Singleton, exposed as a public property so tests can inspect it). Its most distinctive step, with no equivalent in Identity or Product: it walks the registered service collection and **removes every descriptor whose service/implementation type lives under the `MassTransit` namespace** — the real `AddMassTransit(...).UsingRabbitMq(...)` call in `Program.cs` would otherwise try to dial a real broker the moment the test host starts — then re-adds `AddMassTransitTestHarness` with the same `OrderPlacedConsumer` registered against the in-memory test transport. **`ICartEventPublisher` stays wired to the real `CartEventPublisher`**, exactly the same choice `OrderApiFactory` makes for `IOrderEventPublisher` — it resolves `IPublishEndpoint` from the test harness instead of a real connection, so a Cart API test could assert against `harness.Published.Any<CartStockAdjustedEvent>()` for real, the same way Order's API tests already do for `OrderPlacedEvent` (no `CartController` test currently exercises this, but the wiring supports it).
 - `FakeCartRepository` — a `Dictionary<Guid, Dictionary<Guid, CartItemDto>>` (per-user cart, keyed by product) reproducing `ICartRepository`'s four operations in memory: `RemoveItemAsync`/`ClearCartAsync` are no-ops if the user/product isn't found, matching Redis's own idempotent semantics exactly.
 - `JwtTokenHelper` — mints real signed JWTs with the three claims (`userId`, `ClaimTypes.Email`, `ClaimTypes.Role`) `CartController.UserId` expects, since Cart.Api has no login endpoint of its own.
 
@@ -312,8 +340,10 @@ This mirrors Identity's and Product's test strategy: cheap and deterministic nea
    - Product already present → new quantity = request quantity + existing quantity (cumulative add).
    - Builds a fresh `CartItemDto` (new name/price win, combined quantity) — no **Domain** layer call at all, since there's no entity to construct through a factory.
    - `ICartRepository.UpsertItemAsync` → **Infrastructure**'s `RedisCartRepository` runs `HashSetAsync` (overwrites the field in place) then `KeyExpireAsync` (resets the 7-day TTL again).
+   - `ICartEventPublisher.PublishStockAdjustedAsync(productId, command.Quantity, ct)` → **Infrastructure**'s `CartEventPublisher` publishes `CartStockAdjustedEvent` onto RabbitMQ, **after** the Redis write succeeds — if the publish itself fails, the cart item is already saved regardless (no compensating rollback exists for that ordering).
    - Returns the new `CartItemDto` directly — no separate mapping step, since the DTO *is* what's persisted.
-4. **Api**: controller returns HTTP 201 with the `CartItemDto` body.
+4. **Api**: controller returns HTTP 201 with the `CartItemDto` body — the response is returned **before** anything downstream reacts to the published event; the caller has no way to know from this response alone whether Product has processed the stock adjustment yet.
+5. **Downstream, asynchronously**: Product's `CartStockAdjustedConsumer` (on `product-cart-stock-adjusted-queue`) decrements `StockQuantity` by the published delta — see [Product-Service.md §3](../Architecture/Product-Service.md#3-productinfrastructure--persistence-caching-messaging-jwt-settings).
 
 Compare with **order placement clearing the cart** — a flow with no HTTP request at all:
 
@@ -322,7 +352,7 @@ Compare with **order placement clearing the cart** — a flow with no HTTP reque
 3. `OrderPlacedConsumer` calls `ICartRepository.ClearCartAsync(event.CustomerId, ...)` directly — bypassing MediatR, the Application layer, and the API layer entirely, since there's no HTTP caller to respond to and no validation a domain event could fail.
 4. `RedisCartRepository.ClearCartAsync` runs `KeyDeleteAsync` on `cart:{customerId}` — the next `GET /api/cart` for that user returns an empty list.
 
-Every arrow that crosses a layer boundary in the HTTP flow crosses through an interface owned by the *inner* layer (`ICartRepository`), exactly as in Identity's and Product's request-flow traces — only the event-driven flow skips layers, and it does so deliberately, since a message consumer has no controller and no caller-facing validation contract to honor.
+Every arrow that crosses a layer boundary in the HTTP flow crosses through an interface owned by the *inner* layer (`ICartRepository`, now also `ICartEventPublisher`), exactly as in Identity's and Product's request-flow traces — only the event-driven flow skips layers, and it does so deliberately, since a message consumer has no controller and no caller-facing validation contract to honor.
 
 ---
 

@@ -9,6 +9,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Order.Application.Interfaces;
 using Order.Infrastructure.Persistence;
 using Order.Infrastructure.Settings;
+using ShopFlow.Shared.Events;
 
 namespace Order.Api.Tests.Fixtures;
 
@@ -47,8 +48,12 @@ public class OrderApiFactory : WebApplicationFactory<Program>
             // Program.cs wires AddMassTransit(...).UsingRabbitMq(...), which would otherwise try
             // to reach a real broker when the test host starts. Swap every MassTransit-registered
             // service for the in-memory test transport so API tests never touch a network broker.
-            // IOrderEventPublisher stays wired to the real OrderEventPublisher, which resolves
-            // IPublishEndpoint from the test harness instead of a real connection.
+            // IOrderEventPublisher stays wired to the real OrderEventPublisher, and
+            // IStockAvailabilityChecker to the real StockAvailabilityChecker — both resolve
+            // their MassTransit dependencies from the test harness instead of a real connection.
+            // The harness answers every CheckStockRequest as available so Confirm tests don't
+            // need Product's real CheckStockConsumer; insufficient-stock handling is covered by
+            // ConfirmOrderCommandHandlerTests at the application layer.
             var massTransitDescriptors = services
                 .Where(d =>
                     (d.ServiceType.Namespace?.StartsWith("MassTransit", StringComparison.Ordinal) ?? false) ||
@@ -60,7 +65,12 @@ public class OrderApiFactory : WebApplicationFactory<Program>
                 services.Remove(descriptor);
             }
 
-            services.AddMassTransitTestHarness();
+            services.AddMassTransitTestHarness(cfg =>
+            {
+                cfg.AddHandler<CheckStockRequest>(async context =>
+                    await context.RespondAsync(new CheckStockResponse(true, [])));
+                cfg.AddRequestClient<CheckStockRequest>();
+            });
         });
     }
 }

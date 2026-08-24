@@ -58,6 +58,28 @@ public class ProductEntity
         UpdatedAt = DateTime.UtcNow;
     }
 
+    public void DecrementStock(int quantity)
+    {
+        if (quantity <= 0)
+        {
+            throw new DomainException("Quantity to decrement must be positive.");
+        }
+
+        StockQuantity = Math.Max(0, StockQuantity - quantity);
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void IncrementStock(int quantity)
+    {
+        if (quantity <= 0)
+        {
+            throw new DomainException("Quantity to increment must be positive.");
+        }
+
+        StockQuantity += quantity;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
     private static void Validate(string name, decimal price, int stockQuantity)
     {
         if (string.IsNullOrWhiteSpace(name))

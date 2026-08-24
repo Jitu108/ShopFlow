@@ -94,4 +94,56 @@ public class ProductTests
         product.IsActive.Should().BeFalse();
         product.UpdatedAt.Should().BeOnOrAfter(product.CreatedAt);
     }
+
+    [Fact]
+    public void DecrementStock_WithValidQuantity_ShouldReduceStock_AndBumpUpdatedAt()
+    {
+        var product = ProductEntity.Create(VendorId, "Widget", "desc", 9.99m, 10, CategoryId);
+
+        product.DecrementStock(4);
+
+        product.StockQuantity.Should().Be(6);
+        product.UpdatedAt.Should().BeOnOrAfter(product.CreatedAt);
+    }
+
+    [Fact]
+    public void DecrementStock_WhenQuantityExceedsStock_ShouldFloorAtZero()
+    {
+        var product = ProductEntity.Create(VendorId, "Widget", "desc", 9.99m, 3, CategoryId);
+
+        product.DecrementStock(10);
+
+        product.StockQuantity.Should().Be(0);
+    }
+
+    [Fact]
+    public void DecrementStock_WithZeroOrNegativeQuantity_ShouldThrowDomainException()
+    {
+        var product = ProductEntity.Create(VendorId, "Widget", "desc", 9.99m, 10, CategoryId);
+
+        var act = () => product.DecrementStock(0);
+
+        act.Should().Throw<DomainException>();
+    }
+
+    [Fact]
+    public void IncrementStock_WithValidQuantity_ShouldIncreaseStock_AndBumpUpdatedAt()
+    {
+        var product = ProductEntity.Create(VendorId, "Widget", "desc", 9.99m, 10, CategoryId);
+
+        product.IncrementStock(5);
+
+        product.StockQuantity.Should().Be(15);
+        product.UpdatedAt.Should().BeOnOrAfter(product.CreatedAt);
+    }
+
+    [Fact]
+    public void IncrementStock_WithZeroOrNegativeQuantity_ShouldThrowDomainException()
+    {
+        var product = ProductEntity.Create(VendorId, "Widget", "desc", 9.99m, 10, CategoryId);
+
+        var act = () => product.IncrementStock(0);
+
+        act.Should().Throw<DomainException>();
+    }
 }

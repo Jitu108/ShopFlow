@@ -37,6 +37,7 @@ builder.Services.AddSingleton<IConnectionMultiplexer>(_ =>
     ConnectionMultiplexer.Connect(builder.Configuration.GetConnectionString("Redis") ?? "localhost:6379"));
 
 builder.Services.AddScoped<ICartRepository, RedisCartRepository>();
+builder.Services.AddScoped<ICartEventPublisher, CartEventPublisher>();
 
 // ── MediatR ───────────────────────────────────────────────────────────────────
 

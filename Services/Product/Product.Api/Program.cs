@@ -9,9 +9,11 @@ using Product.Application.Validators;
 using Product.Api.Middleware;
 using Product.Domain.Entities;
 using Product.Infrastructure.Caching;
+using Product.Infrastructure.Events;
 using Product.Infrastructure.Persistence;
 using Product.Infrastructure.Persistence.Repositories;
 using Product.Infrastructure.Settings;
+using MassTransit;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -59,6 +61,36 @@ builder.Services.AddMediatR(cfg =>
 builder.Services.AddValidatorsFromAssembly(typeof(CreateProductCommandValidator).Assembly);
 builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
 builder.Services.AddTransient(typeof(IPipelineBehavior<,>), typeof(LoggingBehavior<,>));
+
+// ── MassTransit / RabbitMQ ─────────────────────────────────────────────────────
+
+builder.Services.AddMassTransit(x =>
+{
+    x.AddConsumer<CartStockAdjustedConsumer>();
+    x.AddConsumer<CheckStockConsumer>();
+    x.UsingRabbitMq((ctx, cfg) =>
+    {
+        cfg.Host(builder.Configuration["RabbitMQ:Host"] ?? "localhost", "/", h =>
+        {
+            h.Username(builder.Configuration["RabbitMQ:User"] ?? "guest");
+            h.Password(builder.Configuration["RabbitMQ:Pass"] ?? "guest");
+        });
+
+        cfg.ReceiveEndpoint("product-cart-stock-adjusted-queue", e =>
+        {
+            e.ConfigureConsumer<CartStockAdjustedConsumer>(ctx);
+            e.UseMessageRetry(r => r.Exponential(3,
+                TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(2)));
+        });
+
+        cfg.ReceiveEndpoint("product-check-stock-queue", e =>
+        {
+            e.ConfigureConsumer<CheckStockConsumer>(ctx);
+            e.UseMessageRetry(r => r.Exponential(3,
+                TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(2)));
+        });
+    });
+});
 
 // ── Authentication & Authorisation ────────────────────────────────────────────
 

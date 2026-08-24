@@ -120,6 +120,9 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__Default=Server=sqlserver;Database=ProductDb;User Id=sa;Password=${SQL_SA_PASSWORD};TrustServerCertificate=True
       - ConnectionStrings__Redis=redis:6379
+      - RabbitMQ__Host=rabbitmq
+      - RabbitMQ__User=${RABBITMQ_USER}
+      - RabbitMQ__Pass=${RABBITMQ_PASS}
       - JwtSettings__Secret=${JWT_SECRET}
       - JwtSettings__Issuer=ShopFlow
       - JwtSettings__Audience=ShopFlow
@@ -127,6 +130,8 @@ services:
       sqlserver:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:80/health"]
