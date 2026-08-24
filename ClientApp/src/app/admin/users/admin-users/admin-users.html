@@ -1,0 +1,61 @@
+<h1>Users</h1>
+
+<div class="search-row">
+  <mat-form-field appearance="outline">
+    <mat-label>Search by name</mat-label>
+    <input matInput [formControl]="searchControl" (keyup.enter)="search()" />
+  </mat-form-field>
+  <button mat-flat-button color="primary" (click)="search()">Search</button>
+</div>
+
+@if (resetMessage()) {
+  <p class="success">{{ resetMessage() }}</p>
+}
+
+@if (loading()) {
+  <mat-spinner></mat-spinner>
+} @else if (error()) {
+  <p class="error">{{ error() }}</p>
+} @else if (users().length === 0) {
+  <p>No users found.</p>
+} @else {
+  <div class="user-list">
+    @for (user of users(); track user.id) {
+      <mat-card class="user-card">
+        <mat-card-header>
+          <mat-card-title>{{ user.displayName }}</mat-card-title>
+          <mat-card-subtitle>{{ user.email }}</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <mat-chip [highlighted]="user.isEmailVerified">
+            {{ user.isEmailVerified ? 'Email verified' : 'Email unverified' }}
+          </mat-chip>
+
+          <mat-form-field appearance="outline" class="role-field">
+            <mat-label>Role</mat-label>
+            <mat-select [value]="user.role" (selectionChange)="assignRole(user, $event.value)">
+              @for (role of roles; track role) {
+                <mat-option [value]="role">{{ role }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          @if (resettingUserId() === user.id) {
+            <div class="reset-form">
+              <mat-form-field appearance="outline">
+                <mat-label>New password</mat-label>
+                <input matInput type="password" [formControl]="newPasswordControl" />
+              </mat-form-field>
+              <button mat-button color="primary" [disabled]="newPasswordControl.invalid || resetSaving()" (click)="submitResetPassword()">
+                Save
+              </button>
+              <button mat-button (click)="cancelResetPassword()">Cancel</button>
+            </div>
+          } @else {
+            <button mat-button (click)="startResetPassword(user.id)">Reset Password</button>
+          }
+        </mat-card-content>
+      </mat-card>
+    }
+  </div>
+}

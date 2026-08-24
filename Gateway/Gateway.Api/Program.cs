@@ -49,6 +49,26 @@ builder.Services
         };
     });
 
+// ── CORS ─────────────────────────────────────────────────────────────────────
+// Angular (localhost:4200 in dev; a real deployed origin in prod) is the only
+// browser-based caller of this gateway. Config-driven allowlist, not
+// AllowAnyOrigin. No AllowCredentials(): the refresh token travels as a JSON
+// body field (AuthController/TokenService), never a cookie, so nothing here
+// relies on the browser sending/receiving cookies cross-origin.
+const string AngularUiCorsPolicy = "AngularUi";
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(AngularUiCorsPolicy, policy =>
+    {
+        var allowedOrigins = builder.Configuration
+            .GetSection("Cors:AllowedOrigins").Get<string[]>()
+            ?? ["http://localhost:4200"];
+        policy.WithOrigins(allowedOrigins)
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
 // ── Health Checks ─────────────────────────────────────────────────────────────
 
 builder.Services.AddHealthChecks();
@@ -62,6 +82,11 @@ builder.Services.AddOcelot(builder.Configuration);
 var app = builder.Build();
 
 app.UseSerilogRequestLogging();
+
+// Before UseAuthentication so CORS preflight OPTIONS (which carries no
+// Authorization header) is answered before the JWT bearer middleware ever
+// gets a chance to reject it.
+app.UseCors(AngularUiCorsPolicy);
 
 app.UseAuthentication();
 

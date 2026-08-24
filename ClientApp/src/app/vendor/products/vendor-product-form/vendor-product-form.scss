@@ -1,0 +1,20 @@
+.form-card {
+  max-width: 480px;
+  padding: 1rem;
+
+  form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+}
+
+.form-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.error {
+  color: var(--mat-sys-error);
+}

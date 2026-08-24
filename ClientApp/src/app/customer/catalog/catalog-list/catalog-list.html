@@ -1,0 +1,42 @@
+<h1>Catalog</h1>
+
+@if (loading()) {
+  <mat-spinner></mat-spinner>
+} @else if (error()) {
+  <p class="error">{{ error() }}</p>
+} @else {
+  <mat-form-field appearance="outline" class="category-filter">
+    <mat-label>Filter by category</mat-label>
+    <mat-select [value]="selectedCategoryId()" (selectionChange)="selectCategory($event.value)">
+      <mat-option value="">All categories</mat-option>
+      @for (category of categories(); track category.id) {
+        <mat-option [value]="category.id">{{ category.name }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <div class="product-grid">
+    @for (product of filteredProducts(); track product.id) {
+      <mat-card [routerLink]="['/customer/catalog', product.id]" class="product-card">
+        <mat-card-header>
+          <mat-card-title>{{ product.name }}</mat-card-title>
+          <mat-card-subtitle>{{ categoryNameFor(product.categoryId) }}</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <p>{{ product.description }}</p>
+          <p class="price">{{ product.price | currency }}</p>
+          <p class="stock">{{ product.stockQuantity }} in stock</p>
+        </mat-card-content>
+        <mat-card-actions>
+          @if (user()) {
+            <button mat-button color="primary" (click)="addToCart($event, product)">Add to Cart</button>
+          } @else {
+            <a mat-button routerLink="/login" (click)="$event.stopPropagation()">Login to add to cart</a>
+          }
+        </mat-card-actions>
+      </mat-card>
+    } @empty {
+      <p>No products found.</p>
+    }
+  </div>
+}

@@ -1,0 +1,39 @@
+.search-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.user-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+.user-card {
+  mat-card-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+}
+
+.role-field {
+  width: 100%;
+}
+
+.reset-form {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.success {
+  color: var(--mat-sys-primary);
+}
+
+.error {
+  color: var(--mat-sys-error);
+}

@@ -1,0 +1,27 @@
+<h1>Categories</h1>
+
+<form class="create-form" (ngSubmit)="create()">
+  <mat-form-field appearance="outline">
+    <mat-label>New category name</mat-label>
+    <input matInput [formControl]="nameControl" />
+  </mat-form-field>
+  <button mat-flat-button color="primary" type="submit" [disabled]="nameControl.invalid || saving()">
+    Add
+  </button>
+</form>
+
+@if (error()) {
+  <p class="error">{{ error() }}</p>
+}
+
+@if (loading()) {
+  <mat-spinner></mat-spinner>
+} @else {
+  <mat-list>
+    @for (category of categories(); track category.id) {
+      <mat-list-item>{{ category.name }}</mat-list-item>
+    } @empty {
+      <p>No categories yet.</p>
+    }
+  </mat-list>
+}

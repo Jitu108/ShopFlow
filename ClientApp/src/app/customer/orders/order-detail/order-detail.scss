@@ -1,0 +1,18 @@
+.detail-card {
+  max-width: 480px;
+}
+
+.line-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.25rem 0;
+}
+
+.total {
+  margin-top: 0.5rem;
+  text-align: right;
+}
+
+.error {
+  color: var(--mat-sys-error);
+}

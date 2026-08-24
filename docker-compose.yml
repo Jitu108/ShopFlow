@@ -68,6 +68,7 @@ services:
       - JwtSettings__Secret=${JWT_SECRET}
       - JwtSettings__Issuer=ShopFlow
       - JwtSettings__Audience=ShopFlow
+      - Cors__AllowedOrigins__0=http://localhost:4200
     depends_on:
       identity-service:
         condition: service_healthy
@@ -233,13 +234,21 @@ services:
 
   # ─── Frontend ──────────────────────────────────────────────────────────────
 
-  # angular-ui:
-  #   build: ./ClientApp
-  #   container_name: shopflow-ui
-  #   ports:
-  #     - "4200:80"
-  #   networks:
-  #     - shopflow-net
+  angular-ui:
+    build: ./ClientApp
+    container_name: shopflow-ui
+    ports:
+      - "4200:80"
+    depends_on:
+      gateway:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks:
+      - shopflow-net
 
 # ─── Volumes & Networks ──────────────────────────────────────────────────────
 

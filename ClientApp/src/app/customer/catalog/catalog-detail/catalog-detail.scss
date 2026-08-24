@@ -1,0 +1,16 @@
+.detail-card {
+  max-width: 480px;
+}
+
+.price {
+  font-weight: 600;
+}
+
+.stock {
+  opacity: 0.7;
+  font-size: 0.85rem;
+}
+
+.error {
+  color: var(--mat-sys-error);
+}

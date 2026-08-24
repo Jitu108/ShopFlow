@@ -1,0 +1,28 @@
+.category-filter {
+  min-width: 240px;
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.product-card {
+  cursor: pointer;
+}
+
+.price {
+  font-weight: 600;
+}
+
+.stock {
+  opacity: 0.7;
+  font-size: 0.85rem;
+}
+
+.error {
+  color: var(--mat-sys-error);
+}

@@ -2,7 +2,7 @@
 
 This guide covers running the **entire application** — infrastructure and microservices — through Docker Compose, with no local .NET SDK required. If you'd rather run a service directly with `dotnet run` against Dockerized infrastructure only, see [RUNNING.md](./RUNNING.md).
 
-> **Current state:** Identity, Product, Order, Cart, Notification, and the API Gateway are all implemented and containerized. Only the Angular UI (Phase 7) remains undefined in `docker-compose.yml`.
+> **Current state:** All 7 planned phases are complete and containerized — Identity, Product, Order, Cart, Notification, the API Gateway, and the Angular UI (`angular-ui`, port 4200).
 
 ---
 
