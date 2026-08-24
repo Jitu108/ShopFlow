@@ -20,8 +20,15 @@
   }
 }
 
-.role-field {
+.role-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   width: 100%;
+}
+
+.role-field {
+  flex: 1;
 }
 
 .reset-form {

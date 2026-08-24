@@ -8,10 +8,12 @@ import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatDialog } from '@angular/material/dialog';
 import { UserService } from '../../../core/services/user';
 import { UserProfile } from '../../../core/services/user.models';
 import { UserRole } from '../../../core/auth/auth.models';
 import { extractErrorMessage } from '../../../core/http-error.util';
+import { ConfirmDialogComponent } from '../../../shared/components/confirm-dialog/confirm-dialog';
 
 const ROLES: UserRole[] = ['Customer', 'Vendor', 'Admin'];
 
@@ -33,6 +35,7 @@ const ROLES: UserRole[] = ['Customer', 'Vendor', 'Admin'];
 export class AdminUsers {
   private readonly userService = inject(UserService);
   private readonly fb = inject(FormBuilder);
+  private readonly dialog = inject(MatDialog);
 
   readonly roles = ROLES;
   readonly searchControl = this.fb.nonNullable.control('');
@@ -40,6 +43,10 @@ export class AdminUsers {
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   readonly users = signal<UserProfile[]>([]);
+
+  // Role picked in the dropdown but not yet confirmed/saved, keyed by user id.
+  readonly pendingRoles = signal<Record<string, UserRole>>({});
+  readonly savingRoleUserId = signal<string | null>(null);
 
   // userId currently showing its inline reset-password mini-form, if any.
   readonly resettingUserId = signal<string | null>(null);
@@ -66,13 +73,52 @@ export class AdminUsers {
       });
   }
 
-  assignRole(user: UserProfile, role: string): void {
-    this.userService.assignRole(user.id, role).subscribe({
-      next: () => {
-        this.users.set(this.users().map((u) => (u.id === user.id ? { ...u, role: role as UserRole } : u)));
-      },
-      error: (err) => this.error.set(extractErrorMessage(err)),
-    });
+  roleFor(user: UserProfile): UserRole {
+    return this.pendingRoles()[user.id] ?? user.role;
+  }
+
+  hasPendingRoleChange(user: UserProfile): boolean {
+    const pending = this.pendingRoles()[user.id];
+    return pending !== undefined && pending !== user.role;
+  }
+
+  selectRole(user: UserProfile, role: UserRole): void {
+    this.pendingRoles.update((pending) => ({ ...pending, [user.id]: role }));
+  }
+
+  saveRole(user: UserProfile): void {
+    const role = this.pendingRoles()[user.id];
+    if (!role || role === user.role) {
+      return;
+    }
+    this.dialog
+      .open(ConfirmDialogComponent, {
+        data: {
+          title: 'Change role',
+          message: `Change ${user.displayName}'s role from ${user.role} to ${role}?`,
+          confirmText: 'Change role',
+        },
+      })
+      .afterClosed()
+      .subscribe((confirmed) => {
+        if (confirmed) {
+          this.assignRole(user, role);
+        }
+      });
+  }
+
+  private assignRole(user: UserProfile, role: UserRole): void {
+    this.savingRoleUserId.set(user.id);
+    this.userService
+      .assignRole(user.id, role)
+      .pipe(finalize(() => this.savingRoleUserId.set(null)))
+      .subscribe({
+        next: () => {
+          this.users.set(this.users().map((u) => (u.id === user.id ? { ...u, role } : u)));
+          this.pendingRoles.update(({ [user.id]: _removed, ...rest }) => rest);
+        },
+        error: (err) => this.error.set(extractErrorMessage(err)),
+      });
   }
 
   startResetPassword(userId: string): void {

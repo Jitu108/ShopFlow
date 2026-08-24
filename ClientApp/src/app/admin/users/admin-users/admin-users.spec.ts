@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
+import { MatDialog } from '@angular/material/dialog';
 import { AdminUsers } from './admin-users';
 import { UserService } from '../../../core/services/user';
 import { UserProfile } from '../../../core/services/user.models';
@@ -13,7 +14,10 @@ const alice: UserProfile = {
 };
 
 describe('AdminUsers', () => {
-  function createComponent(overrides: Partial<{ assignRole: () => ReturnType<UserService['assignRole']> }> = {}) {
+  function createComponent(
+    overrides: Partial<{ assignRole: () => ReturnType<UserService['assignRole']>; dialogConfirmed: boolean }> = {},
+  ) {
+    const dialogConfirmed = overrides.dialogConfirmed ?? true;
     TestBed.configureTestingModule({
       providers: [
         {
@@ -22,6 +26,12 @@ describe('AdminUsers', () => {
             searchUsers: () => of([alice]),
             assignRole: overrides.assignRole ?? (() => of(undefined)),
             resetPassword: () => of(undefined),
+          },
+        },
+        {
+          provide: MatDialog,
+          useValue: {
+            open: () => ({ afterClosed: () => of(dialogConfirmed) }),
           },
         },
       ],
@@ -36,10 +46,27 @@ describe('AdminUsers', () => {
     expect(component.users()).toEqual([alice]);
   });
 
-  it('updates the role locally after a successful assign-role call', () => {
+  it('does not persist the role until the selection is saved', () => {
     const component = createComponent();
-    component.assignRole(alice, 'Vendor');
+    component.selectRole(alice, 'Vendor');
+    expect(component.hasPendingRoleChange(alice)).toBe(true);
+    expect(component.users()).toEqual([alice]);
+  });
+
+  it('updates the role locally after confirming the save dialog', () => {
+    const component = createComponent();
+    component.selectRole(alice, 'Vendor');
+    component.saveRole(alice);
     expect(component.users()).toEqual([{ ...alice, role: 'Vendor' }]);
+    expect(component.hasPendingRoleChange(alice)).toBe(false);
+  });
+
+  it('leaves the role unsaved when the confirmation dialog is cancelled', () => {
+    const component = createComponent({ dialogConfirmed: false });
+    component.selectRole(alice, 'Vendor');
+    component.saveRole(alice);
+    expect(component.users()).toEqual([alice]);
+    expect(component.hasPendingRoleChange(alice)).toBe(true);
   });
 
   it('shows the inline reset-password form only for the targeted user, and hides it on cancel', () => {

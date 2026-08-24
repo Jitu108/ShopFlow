@@ -31,14 +31,27 @@
             {{ user.isEmailVerified ? 'Email verified' : 'Email unverified' }}
           </mat-chip>
 
-          <mat-form-field appearance="outline" class="role-field">
-            <mat-label>Role</mat-label>
-            <mat-select [value]="user.role" (selectionChange)="assignRole(user, $event.value)">
-              @for (role of roles; track role) {
-                <mat-option [value]="role">{{ role }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
+          <div class="role-row">
+            <mat-form-field appearance="outline" class="role-field">
+              <mat-label>Role</mat-label>
+              <mat-select [value]="roleFor(user)" (selectionChange)="selectRole(user, $event.value)">
+                @for (role of roles; track role) {
+                  <mat-option [value]="role">{{ role }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            @if (hasPendingRoleChange(user)) {
+              <button
+                mat-button
+                color="primary"
+                [disabled]="savingRoleUserId() === user.id"
+                (click)="saveRole(user)"
+              >
+                Save
+              </button>
+            }
+          </div>
 
           @if (resettingUserId() === user.id) {
             <div class="reset-form">
