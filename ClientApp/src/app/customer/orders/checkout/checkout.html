@@ -1,0 +1,35 @@
+<h1>Checkout</h1>
+
+@if (items().length === 0) {
+  <p>Your cart is empty. <a routerLink="/customer/catalog">Browse the catalog</a>.</p>
+} @else {
+  <mat-card class="checkout-card">
+    @for (item of items(); track item.productId) {
+      <div class="line-item">
+        <span>{{ item.productName }} &times; {{ item.quantity }}</span>
+        <span>{{ item.unitPrice * item.quantity | currency }}</span>
+      </div>
+    }
+
+    <div class="total">
+      <strong>Total: {{ total() | currency }}</strong>
+    </div>
+
+    @if (needsVerification()) {
+      <div class="verify-prompt">
+        <p>You need to verify your email before placing an order.</p>
+        <button mat-flat-button color="primary" (click)="resendVerification()">Verify email now</button>
+      </div>
+    } @else if (error()) {
+      <p class="error">{{ error() }}</p>
+    }
+
+    <button mat-flat-button color="primary" [disabled]="placing()" (click)="placeOrder()">
+      @if (placing()) {
+        <mat-spinner diameter="20"></mat-spinner>
+      } @else {
+        Place Order
+      }
+    </button>
+  </mat-card>
+}

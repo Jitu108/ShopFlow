@@ -14,10 +14,10 @@
 | Phase 4 | Cart Service | ✅ Complete |
 | Phase 5 | Order + Notification Services | ✅ Complete (shipping deferred — see [Phases/Phase5.md](Phases/Phase5.md)) |
 | Phase 6 | API Gateway (Ocelot) | ✅ Complete — see [Phases/Phase6.md](Phases/Phase6.md) |
-| Phase 7 | Angular UI | ⏳ Pending |
+| Phase 7 | Angular UI | ✅ Complete — see [Phases/Phase7.md](Phases/Phase7.md) |
 | — | `Shared/` class library (event contracts) | ✅ Complete — created in Phase 4; `OrderShippedEvent` gained a `CustomerEmail` field in Phase 5 |
 
-Detail per phase: [Phases/Phase1.md](Phases/Phase1.md), [Phases/Phase2.md](Phases/Phase2.md), [Phases/Phase3.md](Phases/Phase3.md), [Phases/Phase4.md](Phases/Phase4.md), [Phases/Phase5.md](Phases/Phase5.md), [Phases/Phase6.md](Phases/Phase6.md).
+All 7 planned phases are complete. Detail per phase: [Phases/Phase1.md](Phases/Phase1.md), [Phases/Phase2.md](Phases/Phase2.md), [Phases/Phase3.md](Phases/Phase3.md), [Phases/Phase4.md](Phases/Phase4.md), [Phases/Phase5.md](Phases/Phase5.md), [Phases/Phase6.md](Phases/Phase6.md), [Phases/Phase7.md](Phases/Phase7.md).
 
 ## Test totals (as of pre-Phase-6 gap fixes)
 
@@ -47,14 +47,15 @@ Phase 2 (Identity) is fully done — the two wiring steps previously tracked her
 | 9 | `Identity.Infrastructure` | `UserRepository` is fully implemented, but over a custom `AppDbContext` + `IPasswordHasher<ApplicationUser>` rather than `UserManager<ApplicationUser>`. EF Core migrations were never added — `IdentityDb` is created via `Database.EnsureCreated()` at Development startup instead, confirmed present and in use. See [Phases/Phase2.md](Phases/Phase2.md). |
 | 10 | `docker-compose.yml` | `identity-service` block is live (not commented out) and confirmed running healthy alongside `product-service`, `sqlserver`, `redis`, `rabbitmq`. |
 
-**Next up, in order** (per [ShopFlow-Approach.md](ShopFlow-Approach.md)):
+**Next up:** none scheduled — all 7 planned phases are complete. One item remains deliberately deferred:
 
-| Phase | Service | Key dependency |
-| --- | --- | --- |
-| Phase 7 | Angular UI | All API endpoints stable |
-| *(unscheduled)* | Order Service — ship endpoint + `OrderShippedConsumer` | Deferred out of Phase 5 (see [Phases/Phase5.md](Phases/Phase5.md)) — `OrderShippedEvent` already carries `CustomerEmail`, ready for whichever phase picks this up |
+| Item | Key dependency |
+| --- | --- |
+| Order Service — ship endpoint + `OrderShippedConsumer` | Deferred out of Phase 5 (see [Phases/Phase5.md](Phases/Phase5.md)) — `OrderShippedEvent` already carries `CustomerEmail`, ready for whichever future work picks this up |
 
 Phase 6 (API Gateway) is done: `Gateway/Gateway.Api` (Ocelot 25.0.0) routes all 4 downstream services, enforces JWT auth + a `RouteClaimsRequirement` on order placement, and rate-limits at 100 req/min/client (IP-identified via a small custom middleware — Ocelot's rate limiter has no IP fallback of its own). Reachable at `http://localhost:5005` (not port 5000 — see [Phases/Phase6.md](Phases/Phase6.md) for why). Verified by running the full existing Postman collection through the gateway instead of each service directly: 64 requests, 118 assertions, 0 failed.
+
+Phase 7 (Angular UI) is done: `ClientApp/` (Angular 21.2, Material, NgRx scoped to exactly the `auth`+`cart` slices), all three role experiences (customer catalog/cart/checkout/orders, vendor products/dashboard, admin users/orders/categories), and a Dockerized `angular-ui` service completing the compose stack. Built across 8 sub-phases, each verified live against the real running backend (not mocks) before moving on — seven real correctness hazards were found and fixed along the way (a concurrent-401-refresh storm, a stale-JWT-after-email-verification trap, a two-step order-placement flow, a soft-delete visibility split, two DTO/claim naming mismatches, and — the most serious — an app-initializer race that shipped a permanently blank screen on every first browser visit, since curl-based verification can't execute JS and never caught it; only found by actually loading the app in a real browser via Chrome DevTools Protocol). 65 unit tests pass. Full narrative, hazard-by-hazard evidence, and the toolchain findings (Node/Angular/NgRx version pins, Vitest not Karma) are in [Phases/Phase7.md](Phases/Phase7.md); the architecture (module tree, auth/token flow, NgRx-scoping rationale) is in [Architecture/Angular-UI.md](Architecture/Angular-UI.md).
 
 ## Known gaps
 

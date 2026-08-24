@@ -1,0 +1,24 @@
+<h1>Your Orders</h1>
+
+@if (loading()) {
+  <mat-spinner></mat-spinner>
+} @else if (error()) {
+  <p class="error">{{ error() }}</p>
+} @else if (orders().length === 0) {
+  <p>You haven't placed any orders yet.</p>
+} @else {
+  <div class="order-list">
+    @for (order of orders(); track order.id) {
+      <mat-card [routerLink]="['/customer/orders', order.id]" class="order-card">
+        <mat-card-header>
+          <mat-card-title>Order {{ order.id.slice(0, 8) }}</mat-card-title>
+          <mat-card-subtitle>{{ order.createdAt | date: 'medium' }}</mat-card-subtitle>
+        </mat-card-header>
+        <mat-card-content>
+          <p>Status: <strong>{{ order.status }}</strong></p>
+          <p>Total: {{ order.totalAmount | currency }}</p>
+        </mat-card-content>
+      </mat-card>
+    }
+  </div>
+}

@@ -1,0 +1,38 @@
+@if (loading()) {
+  <mat-spinner></mat-spinner>
+} @else if (error()) {
+  <p class="error">{{ error() }}</p>
+} @else if (order(); as o) {
+  <mat-card class="detail-card">
+    <mat-card-header>
+      <mat-card-title>Order {{ o.id.slice(0, 8) }}</mat-card-title>
+      <mat-card-subtitle>{{ o.createdAt | date: 'medium' }}</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <p>Status: <strong>{{ o.status }}</strong></p>
+
+      @for (item of o.orderItems; track item.id) {
+        <div class="line-item">
+          <span>{{ item.productName }} &times; {{ item.quantity }}</span>
+          <span>{{ item.unitPrice * item.quantity | currency }}</span>
+        </div>
+      }
+
+      <div class="total">
+        <strong>Total: {{ o.totalAmount | currency }}</strong>
+      </div>
+    </mat-card-content>
+    <mat-card-actions>
+      <a mat-button routerLink="/customer/orders">Back to orders</a>
+      @if (o.status === 'Pending') {
+        <button mat-flat-button color="primary" [disabled]="confirming()" (click)="confirmOrder()">
+          @if (confirming()) {
+            <mat-spinner diameter="20"></mat-spinner>
+          } @else {
+            Confirm Order
+          }
+        </button>
+      }
+    </mat-card-actions>
+  </mat-card>
+}

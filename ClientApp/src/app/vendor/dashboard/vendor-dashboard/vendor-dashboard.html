@@ -1,0 +1,41 @@
+<h1>Vendor Dashboard</h1>
+
+<p class="scope-note">
+  Based on your own product listings only — no sales/revenue data is available from the current API.
+</p>
+
+@if (loading()) {
+  <mat-spinner></mat-spinner>
+} @else if (error()) {
+  <p class="error">{{ error() }}</p>
+} @else {
+  <div class="stat-grid">
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <span class="stat-value">{{ activeCount() }}</span>
+        <span class="stat-label">Active listings</span>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <span class="stat-value">{{ inactiveCount() }}</span>
+        <span class="stat-label">Inactive listings</span>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card">
+      <mat-card-content>
+        <span class="stat-value">{{ totalStockValue() | currency }}</span>
+        <span class="stat-label">Total stock value</span>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card" [class.warn]="lowStockCount() > 0">
+      <mat-card-content>
+        <span class="stat-value">{{ lowStockCount() }}</span>
+        <span class="stat-label">Low stock (&lt; 10 units)</span>
+      </mat-card-content>
+    </mat-card>
+  </div>
+}

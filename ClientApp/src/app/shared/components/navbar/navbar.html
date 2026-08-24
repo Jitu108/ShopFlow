@@ -1,0 +1,35 @@
+<mat-toolbar color="primary">
+  <span class="brand" routerLink="/">ShopFlow</span>
+  <span class="spacer"></span>
+  <a mat-button routerLink="/customer/catalog" routerLinkActive="active">Catalog</a>
+
+  @if (user(); as u) {
+    @if (u.role === 'Customer') {
+      <a
+        mat-button
+        routerLink="/customer/cart"
+        routerLinkActive="active"
+        [matBadge]="cartCount() > 0 ? cartCount() : null"
+        matBadgeColor="accent"
+        matBadgeSize="small"
+      >
+        Cart
+      </a>
+      <a mat-button routerLink="/customer/orders" routerLinkActive="active">Orders</a>
+    }
+    @if (u.role === 'Vendor') {
+      <a mat-button routerLink="/vendor/dashboard" routerLinkActive="active">Dashboard</a>
+      <a mat-button routerLink="/vendor/products" routerLinkActive="active">My Products</a>
+    }
+    @if (u.role === 'Admin') {
+      <a mat-button routerLink="/admin/users" routerLinkActive="active">Users</a>
+      <a mat-button routerLink="/admin/orders" routerLinkActive="active">Orders</a>
+      <a mat-button routerLink="/admin/categories" routerLinkActive="active">Categories</a>
+    }
+    <span class="user-chip">{{ u.displayName }}</span>
+    <button mat-button (click)="logout()">Logout</button>
+  } @else {
+    <a mat-button routerLink="/login" routerLinkActive="active">Login</a>
+    <a mat-button routerLink="/register" routerLinkActive="active">Register</a>
+  }
+</mat-toolbar>

@@ -1,0 +1,38 @@
+# This workflow builds and tests the Angular UI (ClientApp/), separate from
+# the .NET workflow since it's a different toolchain entirely.
+
+name: Angular
+
+on:
+  push:
+    branches: [ "main" ]
+    paths: [ "ClientApp/**" ]
+  pull_request:
+    branches: [ "main" ]
+    paths: [ "ClientApp/**" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ClientApp
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20
+        cache: npm
+        cache-dependency-path: ClientApp/package-lock.json
+    - name: Install dependencies
+      run: npm ci
+    - name: Build
+      run: npx ng build
+    # ng test's default runner is Vitest (not Karma) as of Angular 21 — it
+    # runs once and exits without --watch in a non-TTY environment like CI,
+    # but --watch=false is passed explicitly for determinism.
+    - name: Test
+      run: npx ng test --watch=false

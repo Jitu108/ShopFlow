@@ -1,0 +1,45 @@
+<h1>Your Cart</h1>
+
+@if (loading()) {
+  <mat-spinner></mat-spinner>
+}
+
+@if (error()) {
+  <p class="error">{{ error() }}</p>
+}
+
+@if (!loading() && items().length === 0) {
+  <p>Your cart is empty.</p>
+} @else if (items().length > 0) {
+  <mat-card class="cart-card">
+    @for (item of items(); track item.productId) {
+      <div class="cart-row">
+        <span class="name">{{ item.productName }}</span>
+        <span class="price">{{ item.unitPrice | currency }}</span>
+
+        <div class="qty-controls">
+          <button mat-icon-button (click)="updateQuantity(item.productId, item.quantity - 1)" aria-label="Decrease quantity">
+            <mat-icon>remove</mat-icon>
+          </button>
+          <span class="qty">{{ item.quantity }}</span>
+          <button mat-icon-button (click)="updateQuantity(item.productId, item.quantity + 1)" aria-label="Increase quantity">
+            <mat-icon>add</mat-icon>
+          </button>
+        </div>
+
+        <span class="line-total">{{ item.unitPrice * item.quantity | currency }}</span>
+
+        <button mat-button color="warn" (click)="removeItem(item.productId)">Remove</button>
+      </div>
+    }
+
+    <div class="cart-total">
+      <strong>Total: {{ total() | currency }}</strong>
+    </div>
+
+    <div class="cart-actions">
+      <button mat-stroked-button color="warn" (click)="clearCart()">Clear cart</button>
+      <a mat-flat-button color="primary" routerLink="/customer/checkout">Proceed to Checkout</a>
+    </div>
+  </mat-card>
+}
