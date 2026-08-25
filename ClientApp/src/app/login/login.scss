@@ -4,6 +4,13 @@
 // mat-button here (still wired to the same ReactiveFormsModule form and
 // NgRx dispatch) because Material's own outline/shape/typography tokens
 // kept fighting an exact match with the mockup's compact, flat-radius look.
+:host,
+:host *,
+:host *::before,
+:host *::after {
+  box-sizing: border-box;
+}
+
 :host {
   display: block;
   font-size: 14px;

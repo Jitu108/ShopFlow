@@ -1,29 +1,244 @@
-mat-toolbar {
-  border-bottom: 1px solid #dbdbdb; // --color-line, exact from mockup root CSS
+// Ported from the mockup's header.main + nav.mega (see mockup/README.md for
+// the token source). The mockup's third bar (a promo/utility strip) and its
+// search box, wishlist icon, currency picker, and "become a vendor" link
+// were dropped — none of them have a real feature behind them in this app.
+:host,
+:host *,
+:host *::before,
+:host *::after {
+  box-sizing: border-box;
+}
+
+:host {
+  display: block;
+  font-size: 14px;
+  font-family: 'Nunito Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  --nav-surface: #fafafa;
+  --nav-primary: #292929;
+  --nav-on-primary: #fafafa;
+  --nav-accent: #587364;
+  --nav-on-accent: #fafafa;
+  --nav-border: #dbdbdb;
+  --nav-text-muted: #5c5c5c;
+  --nav-primary-tint: #f2f2f2;
+  --nav-surface-alt: #f2f2f2;
+}
+
+.wrap {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+.site-header {
+  background: var(--nav-surface);
+
+  &.no-mega {
+    border-bottom: 1px solid var(--nav-border);
+  }
+}
+
+.main-row {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 1rem 1.5rem;
 }
 
 .brand {
-  cursor: pointer;
-  font-weight: 600;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 0.5rem;
+  font-weight: 800;
+  font-size: 1.35rem;
+  flex: none;
+  color: var(--nav-primary);
+  text-decoration: none;
 }
 
 .brand-logo {
-  height: 28px;
+  height: 30px;
   width: auto;
+  display: block;
+  color: var(--nav-accent);
 }
 
-.spacer {
-  flex: 1 1 auto;
+.searchbar {
+  flex: 1;
+  display: flex;
+  max-width: 640px;
+  border: 1.5px solid var(--nav-border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--nav-surface);
+
+  select {
+    border: none;
+    background: var(--nav-surface-alt);
+    font-size: 0.82rem;
+    padding: 0 0.8rem;
+    color: var(--nav-text-muted);
+    border-right: 1px solid var(--nav-border);
+    font-family: inherit;
+  }
+
+  input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    padding: 0.65rem 0.9rem;
+    font-size: 0.9rem;
+    font-family: inherit;
+    background: transparent;
+    color: var(--nav-primary);
+
+    &:focus {
+      outline: none;
+    }
+  }
+
+  button {
+    background: var(--nav-primary);
+    color: var(--nav-on-primary);
+    border: none;
+    padding: 0 1.1rem;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+
+    .icon {
+      width: 18px;
+      height: 18px;
+    }
+  }
 }
 
-.active {
-  text-decoration: underline;
+.head-actions {
+  display: flex;
+  align-items: center;
+  gap: 1.2rem;
+  margin-left: auto;
+  flex: none;
 }
 
-.user-chip {
-  margin-right: 0.5rem;
-  opacity: 0.85;
+.ico-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  color: var(--nav-text-muted);
+  text-decoration: none;
+
+  &.active,
+  &:hover {
+    color: var(--nav-primary);
+  }
+
+  .icon {
+    width: 21px;
+    height: 21px;
+  }
+
+  .n {
+    position: absolute;
+    top: -7px;
+    right: -9px;
+    background: var(--nav-accent);
+    color: var(--nav-on-accent);
+    font-size: 0.6rem;
+    font-weight: 700;
+    border-radius: 999px;
+    min-width: 15px;
+    height: 15px;
+    padding: 0 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+.acct {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--nav-primary);
+}
+
+.avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--nav-primary-tint);
+  color: var(--nav-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  flex: none;
+}
+
+.logout-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--nav-text-muted);
+  cursor: pointer;
+
+  &:hover {
+    color: var(--nav-primary);
+  }
+}
+
+.text-link {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--nav-text-muted);
+  text-decoration: none;
+
+  &.active,
+  &:hover {
+    color: var(--nav-primary);
+  }
+}
+
+.mega-row {
+  background: var(--nav-surface);
+  border-top: 1px solid var(--nav-border);
+  border-bottom: 1px solid var(--nav-border);
+
+  .wrap {
+    display: flex;
+    align-items: center;
+    padding: 0 1.5rem;
+  }
+}
+
+.mega-links {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+
+  a {
+    padding: 0.7rem 0.9rem;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--nav-text-muted);
+    text-decoration: none;
+    border-radius: 999px;
+    margin: 0.4rem 0;
+
+    &:hover {
+      color: var(--nav-primary);
+    }
+
+    &.active {
+      background: var(--nav-primary-tint);
+      color: var(--nav-primary);
+      font-weight: 600;
+    }
+  }
 }

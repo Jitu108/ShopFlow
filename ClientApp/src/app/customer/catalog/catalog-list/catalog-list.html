@@ -1,42 +1,162 @@
-<h1>Catalog</h1>
+<div class="catalog-page">
+  @if (loading()) {
+    <div class="spinner" aria-label="Loading"></div>
+  } @else if (error()) {
+    <p class="errtext">{{ error() }}</p>
+  } @else {
+    <section class="catalog-body">
+      <aside class="cat-sidebar">
+        <h5>Categories</h5>
 
-@if (loading()) {
-  <mat-spinner></mat-spinner>
-} @else if (error()) {
-  <p class="error">{{ error() }}</p>
-} @else {
-  <mat-form-field appearance="outline" class="category-filter">
-    <mat-label>Filter by category</mat-label>
-    <mat-select [value]="selectedCategoryId()" (selectionChange)="selectCategory($event.value)">
-      <mat-option value="">All categories</mat-option>
-      @for (category of categories(); track category.id) {
-        <mat-option [value]="category.id">{{ category.name }}</mat-option>
-      }
-    </mat-select>
-  </mat-form-field>
+        <div class="cat-search">
+          <input
+            type="text"
+            placeholder="Search categories…"
+            [value]="categorySearch()"
+            (input)="setCategorySearch($any($event.target).value)"
+          />
+          <button
+            type="button"
+            class="cat-search-btn"
+            (click)="clearCategorySearch()"
+            [attr.aria-label]="categorySearch() ? 'Clear' : 'Search'"
+          >
+            @if (categorySearch()) {
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6 6l12 12M18 6L6 18" />
+              </svg>
+            } @else {
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="7" />
+                <path d="M21 21l-4.3-4.3" />
+              </svg>
+            }
+          </button>
+        </div>
 
-  <div class="product-grid">
-    @for (product of filteredProducts(); track product.id) {
-      <mat-card [routerLink]="['/customer/catalog', product.id]" class="product-card">
-        <mat-card-header>
-          <mat-card-title>{{ product.name }}</mat-card-title>
-          <mat-card-subtitle>{{ categoryNameFor(product.categoryId) }}</mat-card-subtitle>
-        </mat-card-header>
-        <mat-card-content>
-          <p>{{ product.description }}</p>
-          <p class="price">{{ product.price | currency }}</p>
-          <p class="stock">{{ product.stockQuantity }} in stock</p>
-        </mat-card-content>
-        <mat-card-actions>
-          @if (user()) {
-            <button mat-button color="primary" (click)="addToCart($event, product)">Add to Cart</button>
-          } @else {
-            <a mat-button routerLink="/login" (click)="$event.stopPropagation()">Login to add to cart</a>
+        <ul>
+          <li>
+            <a [class.active]="selectedCategoryId() === ''" (click)="selectCategory('')">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
+                <rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" />
+              </svg>
+              All categories
+              <span class="count">{{ products().length }}</span>
+            </a>
+          </li>
+          @for (category of displayedCategories(); track category.id) {
+            <li>
+              <a [class.active]="selectedCategoryId() === category.id" (click)="selectCategory(category.id)">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 12l-8 8-9-9V4h7z" /><circle cx="7.5" cy="7.5" r="1.4" fill="currentColor" stroke="none" />
+                </svg>
+                {{ category.name }}
+                <span class="count">{{ categoryCounts().get(category.id) ?? 0 }}</span>
+              </a>
+            </li>
+          } @empty {
+            <li class="no-match">No categories match.</li>
           }
-        </mat-card-actions>
-      </mat-card>
-    } @empty {
-      <p>No products found.</p>
-    }
-  </div>
-}
+        </ul>
+
+        <hr />
+
+        <div class="filter-row">
+          <label>Price</label>
+          <div class="price-inputs">
+            <div class="field">
+              <label for="min-price">Min</label>
+              <input id="min-price" type="number" min="0" placeholder="$0" (change)="setMinPrice($any($event.target).value)" />
+            </div>
+            <div class="field">
+              <label for="max-price">Max</label>
+              <input id="max-price" type="number" min="0" placeholder="Any" (change)="setMaxPrice($any($event.target).value)" />
+            </div>
+          </div>
+        </div>
+
+        <hr />
+
+        <div class="filter-row">
+          <div class="toggle-row">
+            <span class="lbl">In stock only</span>
+            <button class="switch" [class.on]="inStockOnly()" (click)="toggleInStockOnly()" type="button">
+              <span class="knob"></span>
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <div class="results">
+        <div class="page-head">
+          <h1>{{ selectedCategoryId() ? categoryNameFor(selectedCategoryId()) : 'Catalog' }}</h1>
+          <p class="sub">Products from every vendor on ShopFlow.</p>
+        </div>
+
+        <div class="results-toolbar">
+          <p class="results-count"><strong>{{ visibleProducts().length }}</strong> products</p>
+          <select class="sort-select" (change)="setSortOrder($any($event.target).value)">
+            <option value="relevance">Sort: Relevance</option>
+            <option value="newest">Sort: Newest</option>
+            <option value="price-asc">Price: Low to High</option>
+            <option value="price-desc">Price: High to Low</option>
+          </select>
+        </div>
+
+        <div class="product-grid">
+          @for (product of pagedProducts(); track product.id) {
+            <div class="product-card" [routerLink]="['/customer/catalog', product.id]">
+              <div class="product-photo">
+                <span class="monogram">{{ product.name.charAt(0) }}</span>
+
+                @if (isNew(product)) {
+                  <span class="card-badge">New</span>
+                }
+
+                <button class="like-btn" [class.liked]="isFavorite(product.id)" (click)="toggleFavorite($event, product.id)" type="button">
+                  <svg viewBox="0 0 24 24" [attr.fill]="isFavorite(product.id) ? 'currentColor' : 'none'" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 20s-7.5-4.7-9.6-9.4C1 7.3 2.7 4 6 4c2 0 3.3 1 6 3.5C14.7 5 16 4 18 4c3.3 0 5 3.3 3.6 6.6C19.5 15.3 12 20 12 20z" />
+                  </svg>
+                </button>
+
+                @if (product.stockQuantity <= 0) {
+                  <span class="stock-chip out"><span class="dot"></span>Out of stock</span>
+                } @else if (product.stockQuantity <= 5) {
+                  <span class="stock-chip low"><span class="dot"></span>Only {{ product.stockQuantity }} left</span>
+                } @else {
+                  <span class="stock-chip"><span class="dot"></span>In stock</span>
+                }
+              </div>
+
+              <div class="card-body">
+                <div class="meta-row">
+                  <span class="cat-line">{{ categoryNameFor(product.categoryId) }}</span>
+                  <span class="vendor-line">{{ vendorNameFor(product.vendorId) }}</span>
+                </div>
+                <p class="product-name">{{ product.name }}</p>
+                <p class="product-price">{{ product.price | currency }}</p>
+
+                @if (user()) {
+                  <button class="btn btn-primary btn-block" (click)="addToCart($event, product)" type="button">Add to cart</button>
+                } @else {
+                  <a class="btn btn-primary btn-block" routerLink="/login" (click)="$event.stopPropagation()">Login to add to cart</a>
+                }
+              </div>
+            </div>
+          } @empty {
+            <p class="empty">No products found.</p>
+          }
+        </div>
+
+        @if (totalPages() > 1) {
+          <div class="pagination">
+            @for (n of pageNumbers(); track n) {
+              <button [class.on]="n === currentPage()" (click)="goToPage(n)" type="button">{{ n }}</button>
+            }
+          </div>
+        }
+      </div>
+    </section>
+  }
+</div>
