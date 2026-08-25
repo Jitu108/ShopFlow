@@ -1,5 +1,6 @@
 using Identity.Application.Interfaces;
 using Identity.Domain.Entities;
+using Identity.Domain.Enums;
 
 namespace Identity.Api.Tests.Fixtures;
 
@@ -51,6 +52,15 @@ public class FakeUserRepository : IUserRepository
             .Where(x => string.IsNullOrWhiteSpace(name) || x.User.DisplayName.Contains(name, StringComparison.OrdinalIgnoreCase))
             .Select(x => x.User)
             .OrderBy(x => x.DisplayName)
+            .ToList();
+        return Task.FromResult<IReadOnlyList<ApplicationUser>>(matches);
+    }
+
+    public Task<IReadOnlyList<ApplicationUser>> GetVendorsByIdsAsync(IReadOnlyList<Guid> ids, CancellationToken ct)
+    {
+        var matches = _store.Values
+            .Where(x => ids.Contains(x.User.Id) && x.User.Role == UserRole.Vendor)
+            .Select(x => x.User)
             .ToList();
         return Task.FromResult<IReadOnlyList<ApplicationUser>>(matches);
     }

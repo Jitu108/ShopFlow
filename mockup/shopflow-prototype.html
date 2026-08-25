@@ -811,10 +811,10 @@
           <div class="auth-form-panel">
             <div class="auth-form">
               <h2>Set a new password</h2>
-              <p class="sub">Choose a new password for <strong style="color:var(--primary)">jitendra.g@curiticshealth.com</strong>.</p>
+              <p class="sub">Choose a new password for <strong style="color:var(--primary)" data-role="rp-email">jitendra.g@curiticshealth.com</strong>.</p>
               <div class="field"><label>New password</label><input type="password" value="••••••••"><span class="hint">Min 8 characters, with upper, lower, digit, and special character.</span></div>
               <div class="field"><label>Confirm new password</label><input type="password" value="••••••••"></div>
-              <button class="btn btn-primary btn-block" data-target="auth">Reset password</button>
+              <button class="btn btn-primary btn-block" id="reset-password-submit" data-target="auth">Reset password</button>
             </div>
           </div>
         </div>
@@ -1640,6 +1640,7 @@
             </div>
           </div>
           <div class="row-actions">
+            <button class="btn btn-outline btn-sm" data-target="reset-password" data-rp-email="hello@auroratech.com" data-rp-return="admin-vendor-detail">Reset password</button>
             <button class="btn btn-danger-outline btn-sm" data-confirm="suspend" data-subject="Aurora Tech">Suspend vendor</button>
             <button class="btn btn-primary btn-sm">Message vendor</button>
           </div>
@@ -1695,6 +1696,7 @@
             </div>
           </div>
           <div class="row-actions">
+            <button class="btn btn-outline btn-sm" data-target="reset-password" data-rp-email="m.chen@example.com" data-rp-return="admin-customer-detail">Reset password</button>
             <button class="btn btn-danger-outline btn-sm" data-confirm="block" data-subject="M. Chen">Block customer</button>
           </div>
         </div>
@@ -1761,6 +1763,12 @@
           if(sec.dataset.key === 'admin-category-edit') setCategoryMode(sec, navEl.dataset.formMode);
           else setProductMode(sec, navEl.dataset.formMode);
         }
+      }
+      if(navEl.dataset.rpEmail){
+        var emailEl = document.querySelector('[data-key="reset-password"] [data-role="rp-email"]');
+        if(emailEl) emailEl.textContent = navEl.dataset.rpEmail;
+        var submitBtn = document.getElementById('reset-password-submit');
+        if(submitBtn) submitBtn.dataset.target = navEl.dataset.rpReturn || 'auth';
       }
     }
   });
