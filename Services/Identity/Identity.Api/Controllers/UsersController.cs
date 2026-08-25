@@ -28,6 +28,23 @@ public class UsersController : ControllerBase
     public async Task<IActionResult> SearchUsers([FromQuery] string? name, CancellationToken ct)
         => Ok(await _mediator.Send(new SearchUsersByNameQuery(name), ct));
 
+    // Public and unauthenticated on purpose — the storefront catalog (which
+    // anonymous shoppers browse) needs vendor display names. Only ever
+    // returns id + displayName for Vendor-role users, never email/role/etc.
+    [HttpGet("vendors")]
+    public async Task<IActionResult> GetVendorNames([FromQuery] string ids, CancellationToken ct)
+    {
+        var parsedIds = ids
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(id => Guid.TryParse(id, out var parsed) ? parsed : (Guid?)null)
+            .Where(id => id is not null)
+            .Select(id => id!.Value)
+            .Distinct()
+            .ToList();
+
+        return Ok(await _mediator.Send(new GetVendorNamesByIdsQuery(parsedIds), ct));
+    }
+
     [HttpPost("admin/users/{id}/assign-role")]
     [Authorize(Policy = "RequireAdmin")]
     public async Task<IActionResult> AssignRole(Guid id, AssignRoleRequest request, CancellationToken ct)

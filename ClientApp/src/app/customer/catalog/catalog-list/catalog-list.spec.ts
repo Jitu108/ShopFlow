@@ -5,6 +5,7 @@ import { of } from 'rxjs';
 import { CatalogList } from './catalog-list';
 import { ProductService } from '../../../core/services/product';
 import { CategoryService } from '../../../core/services/category';
+import { VendorService } from '../../../core/services/vendor';
 import { Product } from '../../../core/services/product.models';
 import { Category } from '../../../core/services/category.models';
 import { authReducer } from '../../../core/auth/store/auth.reducer';
@@ -50,6 +51,7 @@ describe('CatalogList', () => {
         provideStore({ auth: authReducer, cart: cartReducer }),
         { provide: ProductService, useValue: { getAll: () => of(products) } },
         { provide: CategoryService, useValue: { getAll: () => of(categories) } },
+        { provide: VendorService, useValue: { getNames: () => of([{ id: 'v1', displayName: 'Acme Vendor' }]) } },
       ],
     });
     const fixture = TestBed.createComponent(CatalogList);
@@ -81,5 +83,11 @@ describe('CatalogList', () => {
     const component = createComponent();
     expect(component.categoryNameFor('cat-1')).toBe('Widgets');
     expect(component.categoryNameFor('missing')).toBe('Uncategorized');
+  });
+
+  it('resolves a vendor name pulled alongside the catalog and falls back for an unknown one', () => {
+    const component = createComponent();
+    expect(component.vendorNameFor('v1')).toBe('Acme Vendor');
+    expect(component.vendorNameFor('missing')).toBe('Independent vendor');
   });
 });

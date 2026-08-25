@@ -79,6 +79,14 @@
       "AuthenticationOptions": { "AuthenticationProviderKeys": ["Bearer"] }
     },
     {
+      "Key": "identity-vendor-names",
+      "UpstreamPathTemplate": "/api/vendors",
+      "UpstreamHttpMethod": ["GET"],
+      "DownstreamPathTemplate": "/api/vendors",
+      "DownstreamScheme": "http",
+      "DownstreamHostAndPorts": [{ "Host": "identity-service", "Port": 80 }]
+    },
+    {
       "Key": "product-catalog-list",
       "UpstreamPathTemplate": "/api/products",
       "UpstreamHttpMethod": ["GET"],
@@ -219,7 +227,7 @@
       "RouteKeys": [
         "identity-register", "identity-login", "identity-refresh", "identity-logout",
         "identity-verify-email", "identity-me", "identity-admin-users-list",
-        "identity-admin-assign-role", "identity-admin-reset-password",
+        "identity-admin-assign-role", "identity-admin-reset-password", "identity-vendor-names",
         "product-catalog-list", "product-catalog-detail", "product-create",
         "product-update", "product-delete", "category-list", "category-create",
         "vendor-products", "cart-root", "cart-items",

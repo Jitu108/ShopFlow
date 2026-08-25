@@ -1,5 +1,6 @@
 using Identity.Application.Interfaces;
 using Identity.Domain.Entities;
+using Identity.Domain.Enums;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -49,6 +50,11 @@ public class UserRepository : IUserRepository
         => await _db.Users
             .Where(u => string.IsNullOrWhiteSpace(name) || u.DisplayName.Contains(name))
             .OrderBy(u => u.DisplayName)
+            .ToListAsync(ct);
+
+    public async Task<IReadOnlyList<ApplicationUser>> GetVendorsByIdsAsync(IReadOnlyList<Guid> ids, CancellationToken ct)
+        => await _db.Users
+            .Where(u => ids.Contains(u.Id) && u.Role == UserRole.Vendor)
             .ToListAsync(ct);
 
     public async Task ResetPasswordAsync(ApplicationUser user, string newPassword, CancellationToken ct)

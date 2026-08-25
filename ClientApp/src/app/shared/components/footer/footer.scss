@@ -1,0 +1,21 @@
+:host {
+  display: block;
+}
+
+.site-footer {
+  background: #fff5e9; // --color-cream, exact from mockup root CSS
+  color: #a0a0a0; // --color-muted, exact
+  border-top: 1px solid #dbdbdb; // --color-line, exact
+  margin-top: 1rem;
+}
+
+.wrap {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 1.8rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+  font-size: 0.82rem;
+}

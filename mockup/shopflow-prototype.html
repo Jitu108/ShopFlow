@@ -1,0 +1,2003 @@
+
+
+
+
+
+
+<title>ShopFlow Page Redesigns</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@400;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap');
+
+  :root{
+    --bg:#FFF5E9; --surface:#FAFAFA; --surface-alt:#F5EEE0; --surface-sunk:#F0E7D5;
+    --border:#DBDBDB; --border-strong:#C4C4C4;
+    --text:#292929; --text-muted:#5C5C5C; --text-faint:#A0A0A0;
+
+    --primary:#292929; --primary-strong:#141414; --primary-tint:#F2F2F2; --on-primary:#FAFAFA;
+    --chrome-bg:#FAFAFA; --chrome-text:#292929; --chrome-border:#DBDBDB;
+    --accent:#587364; --accent-strong:#3F5346; --accent-tint:#E7EDE9; --on-accent:#FAFAFA;
+
+    --success:#587364; --success-tint:#E7EDE9;
+    --warning:#C08A1E; --warning-tint:#FBF0D9;
+    --danger:#D64545; --danger-tint:#FBE0E0;
+
+    --shadow-rest: 0 4px 14px #29292910;
+    --shadow-raised: 0 18px 50px #29292914;
+    --r-sm:8px; --r-md:8px; --r-lg:8px;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{ background:var(--bg); color:var(--text); font-family:"Proxima Soft", "Nunito Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; -webkit-font-smoothing:antialiased; }
+  h1,h2,h3,h4{ font-family:"Proxima Soft", "Nunito Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; text-wrap:balance; margin:0; color:var(--text); letter-spacing:-0.01em; }
+  a{ color:inherit; text-decoration:none; }
+  button{ font-family:inherit; cursor:pointer; }
+  .mono{ font-family:"IBM Plex Mono", ui-monospace, monospace; font-variant-numeric:tabular-nums; }
+  :focus-visible{ outline:2px solid var(--primary); outline-offset:2px; border-radius:4px; }
+  .icon{ width:1em; height:1em; stroke:currentColor; fill:none; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; display:inline-block; vertical-align:-0.15em; }
+  .wrap{ max-width:1320px; margin:0 auto; padding:0 1.5rem; }
+  .visually-hidden{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0); }
+
+  /* ================= prototype tab strip (not part of the app) ================= */
+  .proto-strip{ position:sticky; top:0; z-index:50; background:var(--surface); border-bottom:1px dashed var(--border-strong); padding:.6rem 1.5rem; display:flex; align-items:flex-start; gap:.9rem; flex-wrap:wrap; }
+  .proto-strip .lbl{ font-size:.68rem; text-transform:uppercase; letter-spacing:.07em; color:var(--text-faint); flex:none; font-weight:600; padding-top:.4rem; }
+  .proto-strip .tabs{ display:flex; flex-wrap:wrap; align-items:center; gap:.4rem; row-gap:.45rem; }
+  .proto-strip .grp-lbl{ font-size:.68rem; text-transform:uppercase; letter-spacing:.06em; color:var(--text-faint); font-weight:700; flex:none; margin-right:.05rem; }
+  .proto-strip .sep{ width:1px; align-self:stretch; background:var(--border-strong); margin:0 .35rem; flex:none; }
+  .proto-strip button{ background:transparent; border:1px solid var(--border); border-radius:999px; padding:.35rem .85rem; font-size:.78rem; font-weight:600; color:var(--text-muted); white-space:nowrap; }
+  .proto-strip button.on{ background:var(--primary); border-color:var(--primary); color:var(--on-primary); }
+
+  /* ================= shells ================= */
+  .page{ display:none; }
+  body[data-page="catalog"] .page[data-key="catalog"],
+  body[data-page="product"] .page[data-key="product"],
+  body[data-page="cart"] .page[data-key="cart"],
+  body[data-page="checkout"] .page[data-key="checkout"],
+  body[data-page="profile"] .page[data-key="profile"],
+  body[data-page="auth"] .page[data-key="auth"],
+  body[data-page="register"] .page[data-key="register"],
+  body[data-page="forgot-password"] .page[data-key="forgot-password"],
+  body[data-page="reset-password"] .page[data-key="reset-password"],
+  body[data-page="vendor"] .page[data-key="vendor"],
+  body[data-page="vendor-orders"] .page[data-key="vendor-orders"],
+  body[data-page="vendor-order-detail"] .page[data-key="vendor-order-detail"],
+  body[data-page="vendor-products"] .page[data-key="vendor-products"],
+  body[data-page="vendor-product-edit"] .page[data-key="vendor-product-edit"],
+  body[data-page="vendor-profile"] .page[data-key="vendor-profile"],
+  body[data-page="admin"] .page[data-key="admin"],
+  body[data-page="admin-products"] .page[data-key="admin-products"],
+  body[data-page="admin-categories"] .page[data-key="admin-categories"],
+  body[data-page="admin-dashboard"] .page[data-key="admin-dashboard"],
+  body[data-page="admin-order-detail"] .page[data-key="admin-order-detail"],
+  body[data-page="admin-product-edit"] .page[data-key="admin-product-edit"],
+  body[data-page="admin-category-edit"] .page[data-key="admin-category-edit"],
+  body[data-page="admin-vendors"] .page[data-key="admin-vendors"],
+  body[data-page="admin-vendor-detail"] .page[data-key="admin-vendor-detail"],
+  body[data-page="admin-customers"] .page[data-key="admin-customers"],
+  body[data-page="admin-customer-detail"] .page[data-key="admin-customer-detail"]{ display:block; }
+
+  .shell-storefront{ display:none; }
+  .shell-admin{ display:none; }
+  body[data-page="catalog"] .shell-storefront,
+  body[data-page="product"] .shell-storefront,
+  body[data-page="cart"] .shell-storefront,
+  body[data-page="checkout"] .shell-storefront,
+  body[data-page="profile"] .shell-storefront,
+  body[data-page="auth"] .shell-storefront,
+  body[data-page="register"] .shell-storefront,
+  body[data-page="forgot-password"] .shell-storefront,
+  body[data-page="reset-password"] .shell-storefront{ display:block; }
+  body[data-page^="vendor"] .shell-admin,
+  body[data-page^="admin"] .shell-admin{ display:block; }
+
+  /* ---------- header (storefront) ---------- */
+  header.main{ background:var(--surface); border-bottom:1px solid var(--border); }
+  header.main .wrap{ display:flex; align-items:center; gap:1.5rem; padding:1rem 1.5rem; }
+  .brand{ display:flex; align-items:center; gap:.5rem; font-family:"Proxima Soft","Nunito Sans",sans-serif; font-weight:800; font-size:1.35rem; flex:none; }
+  .brand-logo{ height:34px; width:auto; display:block; }
+  .brand-text{ color:var(--primary); }
+  .searchbar{ flex:1; display:flex; max-width:640px; border:1.5px solid var(--border-strong); border-radius:var(--r-sm); overflow:hidden; background:var(--surface); }
+  .searchbar select{ border:none; background:var(--surface-alt); font-size:.82rem; padding:0 .8rem; color:var(--text-muted); border-right:1px solid var(--border); font-family:inherit; }
+  .searchbar input{ flex:1; border:none; padding:.65rem .9rem; font-size:.9rem; font-family:inherit; background:transparent; color:var(--text); }
+  .searchbar input:focus{ outline:none; }
+  .searchbar button{ background:var(--primary); color:var(--on-primary); border:none; padding:0 1.1rem; display:flex; align-items:center; }
+  .head-actions{ display:flex; align-items:center; gap:1.4rem; margin-left:auto; flex:none; }
+  .head-actions .ico-btn{ position:relative; font-size:1.15rem; color:var(--text-muted); display:flex; }
+  .head-actions .ico-btn .n{ position:absolute; top:-7px; right:-9px; background:var(--accent); color:var(--on-accent); font-size:.6rem; font-weight:700; border-radius:999px; padding:0 .34rem; line-height:1.35; }
+  .head-actions .acct{ display:flex; align-items:center; gap:.5rem; font-size:.85rem; }
+  .head-actions .avatar{ width:28px; height:28px; border-radius:50%; background:var(--primary-tint); color:var(--primary); display:flex; align-items:center; justify-content:center; font-size:.7rem; font-weight:700; font-family:"IBM Plex Mono"; }
+  .head-actions .text-link{ font-size:.85rem; font-weight:500; color:var(--text-muted); }
+  .head-actions .text-link.active,
+  .head-actions .text-link:hover{ color:var(--primary); }
+
+  /* Signed-out header: no search, Catalog/Login/Register at the right */
+  .head-actions[data-actions="loggedout"]{ display:none; }
+  body[data-page="auth"] .head-actions[data-actions="loggedin"],
+  body[data-page="register"] .head-actions[data-actions="loggedin"],
+  body[data-page="forgot-password"] .head-actions[data-actions="loggedin"],
+  body[data-page="reset-password"] .head-actions[data-actions="loggedin"]{ display:none; }
+  body[data-page="auth"] .head-actions[data-actions="loggedout"],
+  body[data-page="register"] .head-actions[data-actions="loggedout"],
+  body[data-page="forgot-password"] .head-actions[data-actions="loggedout"],
+  body[data-page="reset-password"] .head-actions[data-actions="loggedout"]{ display:flex; }
+  body[data-page="auth"] .searchbar,
+  body[data-page="register"] .searchbar,
+  body[data-page="forgot-password"] .searchbar,
+  body[data-page="reset-password"] .searchbar{ display:none; }
+
+  main.content{ padding:2rem 0 3.5rem; }
+
+  /* ---------- buttons ---------- */
+  .btn{ display:inline-flex; align-items:center; justify-content:center; gap:.5rem; border-radius:var(--r-sm); font-size:.86rem; font-weight:600; padding:.65rem 1.2rem; border:1.5px solid transparent; white-space:nowrap; }
+  .btn-accent{ background:var(--accent); color:var(--on-accent); }
+  .btn-primary{ background:transparent; border-color:var(--primary); color:var(--primary); }
+  .btn-primary:hover{ background:var(--primary); color:var(--on-primary); }
+  .btn-outline{ background:transparent; border-color:var(--border-strong); color:var(--text); }
+  .btn-danger-outline{ background:transparent; border-color:var(--danger); color:var(--danger); }
+  .btn-ghost{ background:transparent; color:var(--primary); }
+  .btn-sm{ padding:.4rem .8rem; font-size:.78rem; }
+  .btn-block{ width:100%; }
+
+  /* ---------- breadcrumb ---------- */
+  .crumb{ font-size:.8rem; color:var(--text-faint); margin-bottom:1.2rem; }
+  .crumb b{ color:var(--text); font-weight:600; }
+
+  /* =========================================================
+     CATALOG PAGE
+  ========================================================== */
+  .cat-grid{ display:grid; grid-template-columns:230px 1fr; gap:1.5rem; }
+  @media (max-width:860px){ .cat-grid{ grid-template-columns:1fr; } }
+  .cat-sidebar{ background:var(--surface); border:1px solid var(--border); border-radius:var(--r-md); padding:.5rem; align-self:start; }
+  .cat-sidebar h5{ font-size:.72rem; text-transform:uppercase; letter-spacing:.06em; color:var(--text-faint); padding:.6rem .7rem .3rem; }
+  .cat-sidebar ul{ margin:0; padding:0; list-style:none; }
+  .cat-sidebar a{ display:flex; align-items:center; gap:.7rem; padding:.55rem .7rem; border-radius:var(--r-sm); font-size:.85rem; color:var(--text); }
+  .cat-sidebar a.active{ background:var(--primary-tint); color:var(--primary); font-weight:600; }
+  .cat-sidebar a:hover{ background:var(--surface-alt); }
+  .cat-sidebar a .icon{ color:var(--primary); font-size:1.05rem; flex:none; }
+  .cat-sidebar hr{ border:none; border-top:1px solid var(--border); margin:.5rem .2rem; }
+  .filter-row{ padding:.6rem .7rem; }
+  .filter-row label{ display:block; font-size:.72rem; color:var(--text-faint); margin-bottom:.4rem; }
+  .range-fake{ height:5px; border-radius:3px; background:var(--border); position:relative; }
+  .range-fake .fill{ position:absolute; left:12%; right:38%; top:0; bottom:0; background:var(--primary); border-radius:3px; }
+  .range-fake .handle{ position:absolute; width:13px; height:13px; border-radius:50%; background:var(--surface); border:2px solid var(--primary); top:-4px; }
+
+  .sec-head{ display:flex; align-items:baseline; justify-content:space-between; margin-bottom:1.2rem; gap:1rem; flex-wrap:wrap; }
+  .sec-head h1{ font-size:1.6rem; font-weight:700; }
+  .result-count{ font-size:.85rem; color:var(--text-muted); }
+  .sort-select{ font-size:.82rem; border:1px solid var(--border-strong); border-radius:var(--r-sm); padding:.4rem .7rem; background:var(--surface); color:var(--text); }
+
+  .product-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:1.1rem; }
+  @media (max-width:1000px){ .product-grid{ grid-template-columns:repeat(3,1fr); } }
+  @media (max-width:640px){ .product-grid{ grid-template-columns:repeat(2,1fr); } }
+  .p-card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--r-md); overflow:hidden; transition:box-shadow .15s, transform .15s; }
+  .p-card:hover{ box-shadow:var(--shadow-raised); transform:translateY(-3px); }
+  .p-card .thumb{ height:140px; position:relative; background:var(--surface-sunk); display:flex; align-items:center; justify-content:center; }
+  .p-card .thumb svg{ width:44px; height:44px; stroke-width:1.2; color:var(--border-strong); }
+  .p-card .badge{ position:absolute; top:.55rem; left:.55rem; font-size:.63rem; font-weight:700; padding:.16rem .5rem; border-radius:999px; letter-spacing:.02em; }
+  .p-card .badge.new{ background:var(--primary); color:var(--on-primary); }
+  .p-card .badge.sale{ background:var(--accent); color:var(--on-accent); }
+  .p-card .wish{ position:absolute; top:.5rem; right:.5rem; width:26px; height:26px; border-radius:50%; background:var(--surface); box-shadow:var(--shadow-rest); display:flex; align-items:center; justify-content:center; color:var(--text-muted); font-size:.8rem; }
+  .p-card .stock{ position:absolute; bottom:.5rem; left:.55rem; background:var(--success-tint); color:var(--success); font-size:.62rem; font-weight:600; padding:.12rem .45rem; border-radius:999px; }
+  .p-card .body{ padding:.85rem .9rem 1rem; }
+  .p-card .vendor{ font-size:.66rem; color:var(--text-faint); text-transform:uppercase; letter-spacing:.04em; margin-bottom:.25rem; }
+  .p-card .name{ font-size:.87rem; font-weight:600; line-height:1.35; margin-bottom:.4rem; }
+  .p-card .rating{ display:flex; align-items:center; gap:.3rem; font-size:.72rem; color:var(--text-faint); margin-bottom:.5rem; }
+  .p-card .rating .stars{ color:var(--accent-strong); letter-spacing:1px; }
+  .p-card .price-row{ display:flex; align-items:baseline; gap:.4rem; margin-bottom:.65rem; }
+  .p-card .price{ font-family:"IBM Plex Mono"; font-weight:600; font-size:1rem; }
+  .p-card .was{ font-family:"IBM Plex Mono"; font-size:.76rem; color:var(--text-faint); text-decoration:line-through; }
+
+  .pagination{ display:flex; justify-content:center; gap:.4rem; margin-top:2rem; }
+  .pagination button{ width:34px; height:34px; border-radius:var(--r-sm); border:1px solid var(--border); background:var(--surface); font-size:.82rem; font-family:"IBM Plex Mono"; }
+  .pagination button.on{ background:var(--primary); color:var(--on-primary); border-color:var(--primary); }
+
+  /* =========================================================
+     PRODUCT DETAIL PAGE
+  ========================================================== */
+  .detail-grid{ display:grid; grid-template-columns:1fr 1fr; gap:2.5rem; margin-bottom:3rem; }
+  @media (max-width:820px){ .detail-grid{ grid-template-columns:1fr; } }
+  .gallery-main{ background:var(--surface-sunk); border:1px solid var(--border); border-radius:var(--r-lg); height:360px; display:flex; align-items:center; justify-content:center; }
+  .gallery-main svg{ width:96px; height:96px; stroke-width:1; color:var(--border-strong); }
+  .gallery-thumbs{ display:flex; gap:.6rem; margin-top:.75rem; }
+  .gallery-thumbs .t{ width:64px; height:64px; border-radius:var(--r-sm); background:var(--surface-alt); border:1.5px solid var(--border); display:flex; align-items:center; justify-content:center; }
+  .gallery-thumbs .t.on{ border-color:var(--primary); }
+  .gallery-thumbs .t svg{ width:28px; height:28px; color:var(--border-strong); stroke-width:1.3; }
+
+  .detail-info .vendor-line{ display:flex; align-items:center; gap:.5rem; font-size:.82rem; color:var(--primary); font-weight:600; margin-bottom:.6rem; }
+  .detail-info h1{ font-size:1.75rem; margin-bottom:.5rem; }
+  .detail-info .rating{ display:flex; align-items:center; gap:.5rem; font-size:.85rem; color:var(--text-muted); margin-bottom:1rem; }
+  .detail-info .rating .stars{ color:var(--accent-strong); }
+  .detail-info .price-block{ display:flex; align-items:baseline; gap:.6rem; margin-bottom:1.2rem; }
+  .detail-info .price-block .price{ font-family:"IBM Plex Mono"; font-size:1.8rem; font-weight:600; }
+  .detail-info .price-block .was{ font-family:"IBM Plex Mono"; color:var(--text-faint); text-decoration:line-through; font-size:1rem; }
+  .detail-info .price-block .save{ background:var(--success-tint); color:var(--success); font-size:.72rem; font-weight:700; padding:.2rem .55rem; border-radius:999px; }
+  .detail-info p.desc{ color:var(--text-muted); line-height:1.65; font-size:.92rem; margin-bottom:1.4rem; }
+  .stepper{ display:flex; align-items:center; border:1.5px solid var(--border-strong); border-radius:var(--r-sm); width:fit-content; }
+  .stepper button{ background:transparent; border:none; width:34px; height:38px; font-size:1rem; color:var(--text); }
+  .stepper .qv{ width:36px; text-align:center; font-family:"IBM Plex Mono"; font-weight:600; }
+  .buy-row{ display:flex; gap:.8rem; margin:1.2rem 0 1.4rem; align-items:center; }
+  .stock-line{ display:flex; align-items:center; gap:.5rem; font-size:.82rem; color:var(--success); font-weight:600; margin-bottom:1.2rem; }
+  .stock-line .d{ width:7px; height:7px; border-radius:50%; background:var(--success); }
+  .spec-table{ width:100%; border-collapse:collapse; font-size:.85rem; }
+  .spec-table tr{ border-bottom:1px solid var(--border); }
+  .spec-table td{ padding:.55rem 0; }
+  .spec-table td:first-child{ color:var(--text-faint); width:40%; }
+
+  .related-head{ margin-bottom:1.2rem; }
+
+  /* =========================================================
+     CART PAGE
+  ========================================================== */
+  .cart-grid{ display:grid; grid-template-columns:1fr 340px; gap:1.75rem; align-items:start; }
+  @media (max-width:820px){ .cart-grid{ grid-template-columns:1fr; } }
+  .cart-list{ background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); overflow:hidden; }
+  .cart-item{ display:flex; align-items:center; gap:1rem; padding:1.1rem 1.2rem; border-bottom:1px solid var(--border); }
+  .cart-item:last-child{ border-bottom:none; }
+  .cart-item .thumb{ width:64px; height:64px; border-radius:var(--r-sm); background:var(--surface-sunk); display:flex; align-items:center; justify-content:center; flex:none; }
+  .cart-item .thumb svg{ width:30px; height:30px; color:var(--border-strong); stroke-width:1.3; }
+  .cart-item .info{ flex:1; min-width:0; }
+  .cart-item .vendor{ font-size:.68rem; color:var(--text-faint); text-transform:uppercase; letter-spacing:.04em; }
+  .cart-item .name{ font-size:.9rem; font-weight:600; margin:.15rem 0 .3rem; }
+  .cart-item .remove{ font-size:.76rem; color:var(--danger); }
+  .cart-item .qty{ flex:none; }
+  .cart-item .line-total{ flex:none; width:80px; text-align:right; font-family:"IBM Plex Mono"; font-weight:600; }
+
+  .summary-card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:1.4rem 1.5rem; }
+  .summary-card h3{ font-size:1.1rem; margin-bottom:1rem; }
+
+  .avatar-upload{ display:flex; flex-direction:column; align-items:center; text-align:center; gap:.9rem; }
+  .avatar-lg{ width:96px; height:96px; border-radius:50%; background:var(--primary-tint); color:var(--primary); display:flex; align-items:center; justify-content:center; font-size:1.6rem; font-weight:700; font-family:"IBM Plex Mono"; flex:none; }
+  .avatar-upload-actions{ display:flex; flex-direction:column; align-items:center; gap:.6rem; }
+  .avatar-upload .remove{ background:none; border:none; padding:0; font:inherit; font-size:.78rem; color:var(--danger); }
+  .summary-row{ display:flex; justify-content:space-between; font-size:.87rem; padding:.5rem 0; color:var(--text-muted); }
+  .summary-row.total{ border-top:1px solid var(--border); margin-top:.4rem; padding-top:.9rem; font-weight:700; color:var(--text); font-size:1.02rem; }
+  .summary-row .v{ font-family:"IBM Plex Mono"; }
+  .promo-row{ display:flex; gap:.5rem; margin:1rem 0; }
+  .promo-row input{ flex:1; border:1px solid var(--border-strong); border-radius:var(--r-sm); padding:.55rem .7rem; font-size:.82rem; background:var(--bg); color:var(--text); }
+
+  /* =========================================================
+     CHECKOUT PAGE
+  ========================================================== */
+  .checkout-steps{ display:flex; gap:1.5rem; margin-bottom:2rem; }
+  .checkout-steps .s{ display:flex; align-items:center; gap:.5rem; font-size:.82rem; color:var(--text-faint); }
+  .checkout-steps .s .n{ width:22px; height:22px; border-radius:50%; background:var(--surface-alt); display:flex; align-items:center; justify-content:center; font-family:"IBM Plex Mono"; font-size:.72rem; }
+  .checkout-steps .s.on{ color:var(--primary); font-weight:600; }
+  .checkout-steps .s.on .n{ background:var(--primary); color:var(--on-primary); }
+  .checkout-grid{ display:grid; grid-template-columns:1fr 340px; gap:1.75rem; align-items:start; }
+  @media (max-width:820px){ .checkout-grid{ grid-template-columns:1fr; } }
+  .form-card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:1.5rem 1.6rem; margin-bottom:1.25rem; }
+  .form-card h3{ font-size:1rem; margin-bottom:1rem; }
+  .form-row{ display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-bottom:1rem; }
+  .field{ display:flex; flex-direction:column; gap:.35rem; }
+  .field label{ font-size:.76rem; color:var(--text-muted); }
+  .field input, .field select, .field textarea{ border:1.5px solid var(--border-strong); border-radius:var(--r-sm); padding:.6rem .75rem; font-size:.86rem; background:var(--bg); color:var(--text); font-family:inherit; }
+  .field textarea{ resize:vertical; line-height:1.5; }
+  .pay-methods{ display:flex; gap:.7rem; }
+  .pay-methods label{ flex:1; border:1.5px solid var(--border-strong); border-radius:var(--r-sm); padding:.7rem; text-align:center; font-size:.82rem; font-weight:600; }
+  .pay-methods label.on{ border-color:var(--primary); background:var(--primary-tint); color:var(--primary); }
+  .mini-line{ display:flex; gap:.7rem; align-items:center; padding:.5rem 0; font-size:.85rem; }
+  .mini-line .t{ width:36px; height:36px; border-radius:var(--r-sm); background:var(--surface-sunk); flex:none; display:flex; align-items:center; justify-content:center; }
+  .mini-line .t svg{ width:18px; height:18px; color:var(--border-strong); }
+  .mini-line .name{ flex:1; }
+  .mini-line .v{ font-family:"IBM Plex Mono"; }
+
+  /* =========================================================
+     AUTH PAGE
+  ========================================================== */
+  .auth-split{ display:grid; grid-template-columns:1fr 1fr; position:relative; min-height:540px; margin:-2rem calc(-50vw + 50%) -3.5rem; width:100vw; }
+  .auth-brand-panel{ background:var(--surface); display:flex; align-items:center; justify-content:flex-end; padding:1rem 3rem 3rem 3rem; }
+  .brand-lockup{ text-align:center; }
+  .brand-logo-lg{ height:112px; width:auto; display:block; margin:0 auto 1.3rem; }
+  .brand-lockup-text{ font-family:"Proxima Soft","Nunito Sans",sans-serif; font-weight:800; font-size:2.1rem; color:var(--primary); margin-bottom:.6rem; }
+  .brand-tagline{ color:var(--text-muted); font-size:.95rem; max-width:26ch; margin:0 auto; line-height:1.5; }
+  .auth-divider{ position:absolute; top:0; bottom:0; left:50%; width:1px; background:linear-gradient(to bottom, transparent, var(--border-strong) 12%, var(--border-strong) 88%, transparent); }
+  .auth-form-panel{ display:flex; align-items:center; justify-content:flex-start; padding:3rem 3rem 3rem 6rem; background:var(--surface); }
+  .auth-form{ width:100%; max-width:360px; }
+  .auth-form h2{ font-size:1.4rem; margin-bottom:.4rem; }
+  .auth-form p.sub{ color:var(--text-muted); font-size:.85rem; margin:0 0 1.6rem; }
+  .auth-form .field{ margin-bottom:1rem; }
+  .auth-form .field .hint{ font-size:.72rem; color:var(--text-muted); }
+  .auth-form .f.err{ border-color:var(--danger); }
+  .errtext{ font-size:.76rem; color:var(--danger); display:flex; gap:.35rem; align-items:center; margin-top:-.4rem; margin-bottom:.9rem; }
+  .auth-form .row-between{ display:flex; justify-content:space-between; font-size:.8rem; margin:.2rem 0 1.3rem; }
+  .auth-form .switch{ text-align:center; font-size:.84rem; color:var(--text-muted); margin-top:1.3rem; }
+  .auth-form .switch a{ color:var(--primary); font-weight:600; }
+  @media (max-width:760px){
+    .auth-split{ grid-template-columns:1fr; margin:-2rem 0 -3.5rem; width:auto; min-height:0; }
+    .auth-divider{ display:none; }
+    .auth-brand-panel{ padding:2.2rem 1.5rem; justify-content:center; }
+    .auth-form-panel{ padding:2.2rem 1.5rem; justify-content:center; }
+  }
+
+  /* =========================================================
+     ADMIN / VENDOR SHELL
+  ========================================================== */
+  .admin-topbar{ background:var(--surface); color:var(--text); border-bottom:1px solid var(--border); display:flex; align-items:center; padding:.8rem 1.5rem; gap:1.5rem; }
+  .admin-topbar .brand{ color:var(--primary); }
+  .admin-body{ display:grid; grid-template-columns:220px 1fr; min-height:calc(100vh - 58px); }
+  .admin-sidebar{ background:var(--surface); border-right:1px solid var(--border); padding:1.2rem .75rem; display:none; }
+  .admin-sidebar .grp{ font-size:.68rem; text-transform:uppercase; letter-spacing:.06em; color:var(--text-faint); padding:.8rem .6rem .4rem; }
+  .admin-sidebar a{ display:flex; align-items:center; gap:.65rem; padding:.55rem .65rem; border-radius:var(--r-sm); font-size:.85rem; color:var(--text-muted); }
+  .admin-sidebar a.active{ background:var(--primary-tint); color:var(--primary); font-weight:600; }
+  .admin-main{ padding:1.8rem 2rem 3rem; }
+  .admin-head{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:1.4rem; flex-wrap:wrap; gap:1rem; }
+  .admin-head h1{ font-size:1.5rem; }
+
+  .stat-row{ display:flex; gap:1rem; margin-bottom:2rem; flex-wrap:wrap; }
+  .stat-card{ border:1px solid var(--border); border-radius:var(--r-md); padding:1rem 1.1rem; background:var(--surface); box-shadow:var(--shadow-rest); position:relative; overflow:hidden; min-width:150px; flex:1; }
+  .stat-card::before{ content:""; position:absolute; top:0; left:0; right:0; height:3px; background:var(--stripe,var(--primary)); }
+  .stat-card .l{ font-size:.7rem; color:var(--text-faint); text-transform:uppercase; letter-spacing:.04em; margin-bottom:.35rem; }
+  .stat-card .n{ font-family:"IBM Plex Mono"; font-size:1.5rem; font-weight:600; }
+  .stat-card .d{ font-size:.72rem; margin-top:.3rem; font-weight:600; }
+  .stat-card .d.up{ color:var(--success); }
+  .stat-card .d.down{ color:var(--danger); }
+
+  table.data-table{ width:100%; border-collapse:collapse; font-size:.85rem; background:var(--surface); border:1px solid var(--border); border-radius:var(--r-md); overflow:hidden; }
+  table.data-table th{ text-align:left; font-size:.7rem; letter-spacing:.05em; text-transform:uppercase; color:var(--text-faint); font-weight:600; padding:.7rem 1rem; border-bottom:1px solid var(--border-strong); background:var(--surface-alt); }
+  table.data-table td{ padding:.7rem 1rem; border-bottom:1px solid var(--border); }
+  table.data-table td.num{ font-family:"IBM Plex Mono"; text-align:right; font-variant-numeric:tabular-nums; }
+  table.data-table tr:last-child td{ border-bottom:none; }
+  table.data-table tr:hover td{ background:var(--surface-alt); }
+  .status-chip{ font-size:.68rem; font-weight:600; padding:.18rem .55rem; border-radius:999px; display:inline-block; }
+  .status-chip.ok{ background:var(--success-tint); color:var(--success); }
+  .status-chip.pending{ background:var(--warning-tint); color:var(--warning); }
+  .status-chip.fail{ background:var(--danger-tint); color:var(--danger); }
+  .role-chip{ font-size:.68rem; font-weight:600; padding:.18rem .55rem; border-radius:999px; display:inline-block; background:var(--primary-tint); color:var(--primary); }
+  .table-toolbar{ display:flex; justify-content:space-between; margin-bottom:1rem; gap:1rem; flex-wrap:wrap; }
+  .table-toolbar input{ border:1px solid var(--border-strong); border-radius:var(--r-sm); padding:.5rem .8rem; font-size:.82rem; background:var(--surface); color:var(--text); width:220px; }
+  .row-actions{ display:flex; gap:.5rem; }
+  .row-actions button{ background:transparent; border:1px solid var(--border-strong); border-radius:var(--r-sm); padding:.3rem .6rem; font-size:.75rem; color:var(--text-muted); }
+  .prod-cell{ display:flex; align-items:center; gap:.6rem; }
+  .prod-cell .ic{ width:30px; height:30px; border-radius:6px; background:var(--surface-sunk); display:flex; align-items:center; justify-content:center; flex:none; }
+  .prod-cell .ic svg{ width:16px; height:16px; color:var(--border-strong); }
+  .vendor-cell{ display:flex; align-items:center; gap:.6rem; font-weight:600; }
+  .vendor-cell .ic{ width:30px; height:30px; border-radius:50%; background:var(--accent-tint); color:var(--accent-strong); display:flex; align-items:center; justify-content:center; font-size:.66rem; font-weight:700; font-family:"IBM Plex Mono"; flex:none; }
+  .customer-cell{ display:flex; align-items:center; gap:.6rem; font-weight:600; }
+  .customer-cell .ic{ width:30px; height:30px; border-radius:50%; background:var(--primary-tint); color:var(--primary); display:flex; align-items:center; justify-content:center; font-size:.66rem; font-weight:700; font-family:"IBM Plex Mono"; flex:none; }
+  .vendor-stack{ display:flex; }
+  .vendor-stack .ic{ width:30px; height:30px; border-radius:50%; background:var(--accent-tint); color:var(--accent-strong); display:flex; align-items:center; justify-content:center; font-size:.63rem; font-weight:700; font-family:"IBM Plex Mono"; flex:none; border:2px solid var(--surface); margin-left:-10px; cursor:default; }
+  .vendor-stack .ic:first-child{ margin-left:0; }
+
+  .view-toggle{ display:inline-flex; border:1.5px solid var(--border-strong); border-radius:var(--r-sm); overflow:hidden; flex:none; }
+  .view-toggle button{ background:var(--surface); border:none; padding:.5rem 1rem; font-size:.82rem; font-weight:600; color:var(--text-muted); }
+  .view-toggle button.on{ background:var(--primary); color:var(--on-primary); }
+
+  /* ---------- admin dashboard ---------- */
+  .dash-grid{ display:grid; grid-template-columns:2fr 1fr; gap:1.25rem; margin-bottom:1.25rem; align-items:stretch; }
+  @media (max-width:980px){ .dash-grid{ grid-template-columns:1fr; } }
+  .dash-card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:1.3rem 1.4rem; }
+  .dash-card h3{ font-size:1rem; margin-bottom:.2rem; }
+  .dash-card .sub{ font-size:.78rem; color:var(--text-muted); margin-bottom:1.1rem; }
+  .dash-card .sub.up{ color:var(--success); font-weight:600; }
+  .dash-card .sub.down{ color:var(--danger); font-weight:600; }
+  .section-head{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:1rem; gap:1rem; flex-wrap:wrap; }
+  .section-head h3{ font-size:1.05rem; }
+
+  .stat-card .spark{ display:block; margin-top:.55rem; overflow:visible; }
+
+  .trend-chart{ width:100%; height:auto; display:block; overflow:visible; }
+  .trend-chart .grid-line{ stroke:var(--border); stroke-width:1; }
+  .trend-chart .area{ fill:var(--accent); opacity:.1; }
+  .trend-chart .line{ fill:none; stroke:var(--accent); stroke-width:2; stroke-linejoin:round; stroke-linecap:round; }
+  .trend-chart .pt{ fill:transparent; cursor:pointer; }
+  .trend-chart .pt:hover ~ .end-label, .trend-chart .end-dot{ fill:var(--accent-strong); }
+  .trend-chart .end-dot{ fill:var(--accent-strong); stroke:var(--surface); stroke-width:3; }
+  .trend-chart .end-label{ font-family:"IBM Plex Mono"; font-size:11px; font-weight:600; fill:var(--text); }
+  .trend-foot{ display:flex; justify-content:space-between; font-size:.72rem; color:var(--text-faint); margin-top:.5rem; }
+
+  .bar-list{ display:flex; flex-direction:column; gap:.7rem; }
+  .bar-list .row{ display:grid; grid-template-columns:118px 1fr 66px; align-items:center; gap:.65rem; font-size:.81rem; }
+  .bar-list .label{ display:flex; align-items:center; gap:.4rem; color:var(--text-muted); min-width:0; }
+  .bar-list .label span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .bar-list .label .icon{ color:var(--primary); flex:none; }
+  .bar-list .track{ height:10px; border-radius:5px; background:var(--surface-sunk); overflow:hidden; }
+  .bar-list .fill{ height:100%; border-radius:5px; background:var(--accent); }
+  .bar-list .val{ font-family:"IBM Plex Mono"; text-align:right; font-weight:600; }
+
+  .mini-bar{ height:5px; border-radius:3px; background:var(--surface-sunk); margin-top:.35rem; width:100px; overflow:hidden; }
+  .mini-bar .f{ height:100%; background:var(--accent); border-radius:3px; }
+
+  .meter{ height:14px; border-radius:999px; background:var(--accent-tint); overflow:hidden; }
+  .meter .f{ height:100%; background:var(--accent); border-radius:999px; }
+  .meter-row{ display:flex; justify-content:space-between; align-items:baseline; font-size:.82rem; color:var(--text-muted); margin-bottom:.4rem; }
+  .meter-row .v{ font-family:"IBM Plex Mono"; font-weight:700; color:var(--text); font-size:.95rem; }
+
+  .mini-stat-row{ display:grid; grid-template-columns:1fr 1fr; gap:.9rem; margin-top:1.1rem; }
+  .mini-stat{ }
+  .mini-stat .l{ font-size:.7rem; color:var(--text-faint); text-transform:uppercase; letter-spacing:.04em; margin-bottom:.3rem; }
+  .mini-stat .n{ font-family:"IBM Plex Mono"; font-size:1.1rem; font-weight:600; }
+  .mini-stat .d{ font-size:.72rem; font-weight:600; margin-top:.15rem; }
+  .mini-stat .d.up{ color:var(--success); }
+  .mini-stat .d.down{ color:var(--danger); }
+
+  .urgency-chip{ font-size:.68rem; font-weight:600; padding:.18rem .55rem; border-radius:999px; display:inline-block; }
+  .urgency-chip.critical{ background:var(--danger-tint); color:var(--danger); }
+  .urgency-chip.low{ background:var(--warning-tint); color:var(--warning); }
+
+  [data-mode-text]{ display:none; }
+  [data-mode="edit"] [data-mode-text="edit"]{ display:inline; }
+  [data-mode="add"] [data-mode-text="add"]{ display:inline; }
+  [data-mode="add"] [data-role="preview-stock"]{ display:none; }
+
+  .upload-drop{ display:flex; align-items:center; gap:1rem; border:1.5px dashed var(--border-strong); border-radius:var(--r-md); padding:1rem 1.2rem; background:var(--bg); transition:border-color .15s, background .15s; }
+  .upload-drop.drag{ border-color:var(--accent); background:var(--accent-tint); }
+  .upload-drop label{ display:flex; align-items:center; gap:1rem; flex:1; min-width:0; cursor:pointer; }
+  .upload-drop .upload-preview{ width:64px; height:64px; border-radius:var(--r-sm); background:var(--surface-sunk); display:flex; align-items:center; justify-content:center; flex:none; background-size:cover; background-position:center; overflow:hidden; }
+  .upload-drop .upload-preview svg{ width:28px; height:28px; color:var(--border-strong); stroke-width:1.3; }
+  .upload-drop .upload-text{ font-size:.84rem; color:var(--text-muted); line-height:1.5; }
+  .upload-drop .upload-text strong{ color:var(--primary); font-weight:600; }
+  .upload-drop .upload-remove{ background:transparent; border:none; font-size:.78rem; font-weight:600; color:var(--danger); flex:none; display:none; padding:0; }
+  .upload-drop.has-image .upload-remove{ display:inline; }
+  [data-role="preview-thumb"]{ background-size:cover; background-position:center; }
+
+  .topbar-label{ display:none; margin-left:auto; font-size:.85rem; opacity:.85; }
+  body[data-page^="vendor"] .topbar-label[data-scope="vendor"],
+  body[data-page^="admin"] .topbar-label[data-scope="admin"]{ display:inline; }
+  body[data-page^="vendor"] .admin-sidebar[data-scope="vendor"],
+  body[data-page^="admin"] .admin-sidebar[data-scope="admin"]{ display:block; }
+  body[data-page="vendor-order-detail"] .admin-sidebar[data-scope="vendor"] a[data-target="vendor-orders"]{ background:var(--primary-tint); color:var(--primary); font-weight:600; }
+  body[data-page="vendor-product-edit"] .admin-sidebar[data-scope="vendor"] a[data-target="vendor-products"]{ background:var(--primary-tint); color:var(--primary); font-weight:600; }
+  body[data-page="admin-vendor-detail"] .admin-sidebar[data-scope="admin"] a[data-target="admin-vendors"]{ background:var(--primary-tint); color:var(--primary); font-weight:600; }
+  body[data-page="admin-order-detail"] .admin-sidebar[data-scope="admin"] a[data-target="admin"]{ background:var(--primary-tint); color:var(--primary); font-weight:600; }
+  body[data-page="admin-product-edit"] .admin-sidebar[data-scope="admin"] a[data-target="admin-products"]{ background:var(--primary-tint); color:var(--primary); font-weight:600; }
+  body[data-page="admin-category-edit"] .admin-sidebar[data-scope="admin"] a[data-target="admin-categories"]{ background:var(--primary-tint); color:var(--primary); font-weight:600; }
+  body[data-page="admin-customer-detail"] .admin-sidebar[data-scope="admin"] a[data-target="admin-customers"]{ background:var(--primary-tint); color:var(--primary); font-weight:600; }
+
+  .modal-overlay{ position:fixed; inset:0; background:#29292955; display:none; align-items:center; justify-content:center; z-index:100; padding:1rem; }
+  .modal-overlay.show{ display:flex; }
+  .modal-card{ background:var(--surface); border-radius:var(--r-lg); padding:1.6rem 1.7rem; max-width:380px; width:100%; box-shadow:var(--shadow-raised); }
+  .modal-card h3{ font-size:1.05rem; margin-bottom:.6rem; }
+  .modal-card p{ font-size:.86rem; color:var(--text-muted); margin:0 0 1.4rem; line-height:1.55; }
+  .modal-card.wide{ max-width:440px; text-align:left; }
+  .modal-actions{ display:flex; justify-content:flex-end; gap:.7rem; }
+
+  footer.site{ background:var(--surface-alt); color:var(--text-muted); border-top:1px solid var(--border); margin-top:1rem; }
+  footer.site .wrap{ padding:1.8rem 1.5rem; display:flex; justify-content:space-between; flex-wrap:wrap; gap:1rem; font-size:.82rem; }
+</style>
+
+<svg class="visually-hidden" aria-hidden="true">
+  <symbol id="i-electronics" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M8 20h8M12 16v4"/></symbol>
+  <symbol id="i-apparel" viewBox="0 0 24 24"><path d="M8 4l4 2 4-2 4 4-3 3v9H7v-9L4 8z"/></symbol>
+  <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 11l8-7 8 7"/><path d="M6 10v9h12v-9"/><path d="M10 19v-5h4v5"/></symbol>
+  <symbol id="i-beauty" viewBox="0 0 24 24"><path d="M12 4c2 3 4 5.5 4 8.5A4 4 0 0 1 4 12.5C4 9.5 10 6 12 4z"/></symbol>
+  <symbol id="i-sports" viewBox="0 0 24 24"><path d="M4 12h2M18 12h2M8 8v8M16 8v8M8 12h8"/></symbol>
+  <symbol id="i-grocery" viewBox="0 0 24 24"><path d="M4 8h16l-1.5 11h-13z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></symbol>
+  <symbol id="i-office" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="12" rx="1.5"/><path d="M9 8V6a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7-4.35-9-8.5C1.5 8 3.5 5 7 5c2 0 4 1.5 5 3 1-1.5 3-3 5-3 3.5 0 5.5 3 4 6.5C19 15.65 12 20 12 20z"/></symbol>
+  <symbol id="i-cart" viewBox="0 0 24 24"><circle cx="9" cy="20" r="1.4" fill="currentColor" stroke="none"/><circle cx="18" cy="20" r="1.4" fill="currentColor" stroke="none"/><path d="M2 3h2l2.6 12.2A2 2 0 0 0 8.5 17h9.1a2 2 0 0 0 1.9-1.4L21 7H6"/></symbol>
+  <symbol id="i-chevron" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+  <symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></symbol>
+  <symbol id="i-box" viewBox="0 0 24 24"><path d="M3 8l9-5 9 5-9 5-9-5z"/><path d="M3 8v9l9 5 9-5V8M12 13v9"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6"/><circle cx="17" cy="9" r="2.6"/><path d="M15.5 13.2c2.6.3 4.5 2.6 4.5 6"/></symbol>
+  <symbol id="i-tag" viewBox="0 0 24 24"><path d="M20 12l-8 8-9-9V4h7z"/><circle cx="7.5" cy="7.5" r="1.4" fill="currentColor" stroke="none"/></symbol>
+  <symbol id="i-store" viewBox="0 0 24 24"><path d="M4 9l1-5h14l1 5"/><path d="M4 9h16v10H4z"/><path d="M9 19v-5h6v5"/></symbol>
+  <symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 20V11M12 20V4M20 20v-7"/><path d="M2 20h20"/></symbol>
+</svg>
+
+<div class="proto-strip">
+  <span class="lbl">Prototype — app pages</span>
+  <div class="tabs">
+    <span class="grp-lbl">Storefront</span>
+    <button data-target="catalog" class="on">Catalog</button>
+    <button data-target="product">Product detail</button>
+    <button data-target="cart">Cart</button>
+    <button data-target="checkout">Checkout</button>
+    <button data-target="profile">My Profile</button>
+    <button data-target="auth">Sign in</button>
+    <button data-target="register">Register</button>
+    <button data-target="forgot-password">Forgot password</button>
+    <button data-target="reset-password">Reset password</button>
+
+    <span class="sep"></span>
+    <span class="grp-lbl">Vendor</span>
+    <button data-target="vendor">Dashboard</button>
+    <button data-target="vendor-orders">Orders</button>
+    <button data-target="vendor-order-detail">Order detail</button>
+    <button data-target="vendor-products">Products</button>
+    <button data-target="vendor-product-edit">Edit product</button>
+    <button data-target="vendor-profile">Profile</button>
+
+    <span class="sep"></span>
+    <span class="grp-lbl">Admin</span>
+    <button data-target="admin-dashboard">Dashboard</button>
+    <button data-target="admin">Orders</button>
+    <button data-target="admin-products">Products</button>
+    <button data-target="admin-categories">Categories</button>
+    <button data-target="admin-vendors">Vendors</button>
+    <button data-target="admin-customers">Customers</button>
+
+    <span class="sep"></span>
+    <span class="grp-lbl">Admin details</span>
+    <button data-target="admin-order-detail">Order detail</button>
+    <button data-target="admin-product-edit">Edit product</button>
+    <button data-target="admin-category-edit">Edit category</button>
+    <button data-target="admin-vendor-detail">Vendor detail</button>
+    <button data-target="admin-customer-detail">Customer detail</button>
+  </div>
+</div>
+
+<!-- ============================ STOREFRONT SHELL ============================ -->
+<div class="shell-storefront">
+  <header class="main">
+    <div class="wrap">
+      <a class="brand"><svg class="brand-logo" viewBox="0 0 32 32" fill="none" stroke="var(--primary)" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M4 22c3-8 7-13 12-13s9 5 12 13"/></svg><span class="brand-text">ShopFlow</span></a>
+      <div class="searchbar">
+        <select><option>All categories</option></select>
+        <input type="text" placeholder="Search products, vendors, categories…">
+        <button aria-label="Search"><svg class="icon"><use href="#i-search"/></svg></button>
+      </div>
+      <div class="head-actions" data-actions="loggedin">
+        <a class="ico-btn" aria-label="Wishlist"><svg class="icon"><use href="#i-heart"/></svg></a>
+        <a class="ico-btn" aria-label="Cart"><svg class="icon"><use href="#i-cart"/></svg><span class="n">3</span></a>
+        <a class="acct" data-target="profile"><span class="avatar">JG</span>Account</a>
+      </div>
+      <div class="head-actions" data-actions="loggedout">
+        <a class="text-link" data-target="catalog">Catalog</a>
+        <a class="text-link" data-target="auth">Login</a>
+        <a class="text-link" data-target="register">Register</a>
+      </div>
+    </div>
+  </header>
+  <main class="content">
+    <div class="wrap">
+
+      <!-- CATALOG -->
+      <section class="page" data-key="catalog">
+        <div class="cat-grid">
+          <aside class="cat-sidebar">
+            <h5>Categories</h5>
+            <ul>
+              <li><a class="active" href="#"><svg class="icon"><use href="#i-electronics"/></svg>Electronics</a></li>
+              <li><a href="#"><svg class="icon"><use href="#i-apparel"/></svg>Apparel</a></li>
+              <li><a href="#"><svg class="icon"><use href="#i-home"/></svg>Home &amp; Kitchen</a></li>
+              <li><a href="#"><svg class="icon"><use href="#i-beauty"/></svg>Beauty &amp; Care</a></li>
+              <li><a href="#"><svg class="icon"><use href="#i-sports"/></svg>Sports &amp; Outdoors</a></li>
+              <li><a href="#"><svg class="icon"><use href="#i-grocery"/></svg>Grocery</a></li>
+              <li><a href="#"><svg class="icon"><use href="#i-office"/></svg>Office</a></li>
+            </ul>
+            <hr>
+            <div class="filter-row">
+              <label>Price range — $12 – $180</label>
+              <div class="range-fake"><div class="fill"></div><div class="handle" style="left:12%"></div><div class="handle" style="left:62%"></div></div>
+            </div>
+          </aside>
+
+          <div>
+            <div class="sec-head">
+              <div><h1>Electronics</h1><div class="result-count">128 products</div></div>
+              <select class="sort-select"><option>Sort: Most popular</option></select>
+            </div>
+            <div class="product-grid">
+              <div class="p-card"><div class="thumb"><span class="badge new">New</span><span class="wish"><svg class="icon"><use href="#i-heart"/></svg></span><svg viewBox="0 0 24 24"><use href="#i-electronics"/></svg><span class="stock">In stock</span></div><div class="body"><div class="vendor">Aurora Tech</div><div class="name">Wireless Noise-Cancelling Headphones</div><div class="rating"><span class="stars">★★★★★</span>(214)</div><div class="price-row"><span class="price">$129.00</span></div><button class="btn btn-primary btn-sm btn-block">Add to cart</button></div></div>
+              <div class="p-card"><div class="thumb"><span class="wish"><svg class="icon"><use href="#i-heart"/></svg></span><svg viewBox="0 0 24 24"><use href="#i-electronics"/></svg><span class="stock">In stock</span></div><div class="body"><div class="vendor">Aurora Tech</div><div class="name">Portable Bluetooth Speaker</div><div class="rating"><span class="stars">★★★★☆</span>(88)</div><div class="price-row"><span class="price">$38.00</span></div><button class="btn btn-primary btn-sm btn-block">Add to cart</button></div></div>
+              <div class="p-card"><div class="thumb"><span class="badge sale">Sale</span><span class="wish"><svg class="icon"><use href="#i-heart"/></svg></span><svg viewBox="0 0 24 24"><use href="#i-electronics"/></svg></div><div class="body"><div class="vendor">Foundry Goods</div><div class="name">USB-C Fast Charger, 65W</div><div class="rating"><span class="stars">★★★★☆</span>(41)</div><div class="price-row"><span class="price">$24.00</span><span class="was">$32.00</span></div><button class="btn btn-primary btn-sm btn-block">Add to cart</button></div></div>
+              <div class="p-card"><div class="thumb"><span class="wish"><svg class="icon"><use href="#i-heart"/></svg></span><svg viewBox="0 0 24 24"><use href="#i-electronics"/></svg><span class="stock">In stock</span></div><div class="body"><div class="vendor">Aurora Tech</div><div class="name">4K Webcam with Ring Light</div><div class="rating"><span class="stars">★★★★★</span>(76)</div><div class="price-row"><span class="price">$59.00</span></div><button class="btn btn-primary btn-sm btn-block">Add to cart</button></div></div>
+              <div class="p-card"><div class="thumb"><span class="wish"><svg class="icon"><use href="#i-heart"/></svg></span><svg viewBox="0 0 24 24"><use href="#i-office"/></svg></div><div class="body"><div class="vendor">Foundry Goods</div><div class="name">Minimalist Walnut Desk Lamp</div><div class="rating"><span class="stars">★★★★☆</span>(37)</div><div class="price-row"><span class="price">$56.00</span></div><button class="btn btn-primary btn-sm btn-block">Add to cart</button></div></div>
+              <div class="p-card"><div class="thumb"><span class="badge new">New</span><span class="wish"><svg class="icon"><use href="#i-heart"/></svg></span><svg viewBox="0 0 24 24"><use href="#i-electronics"/></svg></div><div class="body"><div class="vendor">Aurora Tech</div><div class="name">Mechanical Keyboard, Low-profile</div><div class="rating"><span class="stars">★★★★★</span>(122)</div><div class="price-row"><span class="price">$89.00</span></div><button class="btn btn-primary btn-sm btn-block">Add to cart</button></div></div>
+              <div class="p-card"><div class="thumb"><span class="wish"><svg class="icon"><use href="#i-heart"/></svg></span><svg viewBox="0 0 24 24"><use href="#i-electronics"/></svg><span class="stock">In stock</span></div><div class="body"><div class="vendor">Foundry Goods</div><div class="name">Wireless Charging Stand</div><div class="rating"><span class="stars">★★★★☆</span>(54)</div><div class="price-row"><span class="price">$32.00</span></div><button class="btn btn-primary btn-sm btn-block">Add to cart</button></div></div>
+              <div class="p-card"><div class="thumb"><span class="badge sale">Sale</span><span class="wish"><svg class="icon"><use href="#i-heart"/></svg></span><svg viewBox="0 0 24 24"><use href="#i-electronics"/></svg></div><div class="body"><div class="vendor">Aurora Tech</div><div class="name">Portable Power Bank, 20,000mAh</div><div class="rating"><span class="stars">★★★★★</span>(97)</div><div class="price-row"><span class="price">$34.00</span><span class="was">$45.00</span></div><button class="btn btn-primary btn-sm btn-block">Add to cart</button></div></div>
+            </div>
+            <div class="pagination"><button class="on">1</button><button>2</button><button>3</button><button>…</button><button>16</button></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PRODUCT DETAIL -->
+      <section class="page" data-key="product">
+        <div class="crumb">Catalog / Electronics / <b>Wireless Noise-Cancelling Headphones</b></div>
+        <div class="detail-grid">
+          <div>
+            <div class="gallery-main"><svg class="icon"><use href="#i-electronics"/></svg></div>
+            <div class="gallery-thumbs">
+              <div class="t on"><svg class="icon"><use href="#i-electronics"/></svg></div>
+              <div class="t"><svg class="icon"><use href="#i-electronics"/></svg></div>
+              <div class="t"><svg class="icon"><use href="#i-electronics"/></svg></div>
+              <div class="t"><svg class="icon"><use href="#i-electronics"/></svg></div>
+            </div>
+          </div>
+          <div class="detail-info">
+            <div class="vendor-line"><svg class="icon"><use href="#i-store"/></svg>Sold by Aurora Tech</div>
+            <h1>Wireless Noise-Cancelling Headphones</h1>
+            <div class="rating"><span class="stars">★★★★★</span>4.8 (214 reviews)</div>
+            <div class="price-block"><span class="price">$129.00</span><span class="was">$159.00</span><span class="save">Save 19%</span></div>
+            <p class="desc">Over-ear headphones with adaptive noise cancellation, 30-hour battery life, and a fold-flat design. Includes a hard-shell carry case and USB-C fast charging cable.</p>
+            <div class="stock-line"><span class="d"></span>In stock — ships within 2 business days</div>
+            <div class="buy-row">
+              <div class="stepper"><button>–</button><span class="qv">1</span><button>+</button></div>
+              <button class="btn btn-accent">Add to cart</button>
+              <button class="btn btn-outline" aria-label="Wishlist"><svg class="icon"><use href="#i-heart"/></svg></button>
+            </div>
+            <table class="spec-table">
+              <tr><td>Battery life</td><td>30 hours (ANC on)</td></tr>
+              <tr><td>Connectivity</td><td>Bluetooth 5.3, USB-C</td></tr>
+              <tr><td>Weight</td><td>254g</td></tr>
+              <tr><td>Warranty</td><td>2-year vendor warranty</td></tr>
+            </table>
+          </div>
+        </div>
+        <div class="related-head"><h2 style="font-size:1.25rem">More from Aurora Tech</h2></div>
+        <div class="product-grid">
+          <div class="p-card"><div class="thumb"><svg viewBox="0 0 24 24"><use href="#i-electronics"/></svg></div><div class="body"><div class="vendor">Aurora Tech</div><div class="name">Portable Bluetooth Speaker</div><div class="price-row"><span class="price">$38.00</span></div></div></div>
+          <div class="p-card"><div class="thumb"><svg viewBox="0 0 24 24"><use href="#i-electronics"/></svg></div><div class="body"><div class="vendor">Aurora Tech</div><div class="name">4K Webcam with Ring Light</div><div class="price-row"><span class="price">$59.00</span></div></div></div>
+          <div class="p-card"><div class="thumb"><svg viewBox="0 0 24 24"><use href="#i-electronics"/></svg></div><div class="body"><div class="vendor">Aurora Tech</div><div class="name">Mechanical Keyboard, Low-profile</div><div class="price-row"><span class="price">$89.00</span></div></div></div>
+          <div class="p-card"><div class="thumb"><svg viewBox="0 0 24 24"><use href="#i-electronics"/></svg></div><div class="body"><div class="vendor">Aurora Tech</div><div class="name">Portable Power Bank, 20,000mAh</div><div class="price-row"><span class="price">$34.00</span></div></div></div>
+        </div>
+      </section>
+
+      <!-- CART -->
+      <section class="page" data-key="cart">
+        <div class="sec-head"><h1>Your cart</h1><div class="result-count">3 items</div></div>
+        <div class="cart-grid">
+          <div class="cart-list">
+            <div class="cart-item">
+              <div class="thumb"><svg class="icon"><use href="#i-electronics"/></svg></div>
+              <div class="info"><div class="vendor">Aurora Tech</div><div class="name">Wireless Noise-Cancelling Headphones</div><a class="remove">Remove</a></div>
+              <div class="stepper qty"><button>–</button><span class="qv">1</span><button>+</button></div>
+              <div class="line-total">$129.00</div>
+            </div>
+            <div class="cart-item">
+              <div class="thumb"><svg class="icon"><use href="#i-home"/></svg></div>
+              <div class="info"><div class="vendor">Terra &amp; Co.</div><div class="name">Ceramic Pour-Over Coffee Set</div><a class="remove">Remove</a></div>
+              <div class="stepper qty"><button>–</button><span class="qv">1</span><button>+</button></div>
+              <div class="line-total">$48.00</div>
+            </div>
+            <div class="cart-item">
+              <div class="thumb"><svg class="icon"><use href="#i-grocery"/></svg></div>
+              <div class="info"><div class="vendor">Cedar &amp; Salt</div><div class="name">Cast Iron Skillet, 12 inch</div><a class="remove">Remove</a></div>
+              <div class="stepper qty"><button>–</button><span class="qv">2</span><button>+</button></div>
+              <div class="line-total">$128.00</div>
+            </div>
+          </div>
+          <div class="summary-card">
+            <h3>Order summary</h3>
+            <div class="promo-row"><input type="text" placeholder="Promo code"><button class="btn btn-outline btn-sm">Apply</button></div>
+            <div class="summary-row"><span>Subtotal</span><span class="v">$305.00</span></div>
+            <div class="summary-row"><span>Shipping</span><span class="v">$6.50</span></div>
+            <div class="summary-row"><span>Tax</span><span class="v">$21.34</span></div>
+            <div class="summary-row total"><span>Total</span><span class="v">$332.84</span></div>
+            <button class="btn btn-accent btn-block" style="margin-top:1rem">Checkout</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- CHECKOUT -->
+      <section class="page" data-key="checkout">
+        <h1 style="margin-bottom:1.2rem">Checkout</h1>
+        <div class="checkout-steps">
+          <div class="s on"><span class="n">1</span>Shipping</div>
+          <div class="s"><span class="n">2</span>Payment</div>
+          <div class="s"><span class="n">3</span>Review</div>
+        </div>
+        <div class="checkout-grid">
+          <div>
+            <div class="form-card">
+              <h3>Shipping address</h3>
+              <div class="form-row"><div class="field"><label>First name</label><input value="Jitendra"></div><div class="field"><label>Last name</label><input value="Gupta"></div></div>
+              <div class="field" style="margin-bottom:1rem"><label>Street address</label><input value="1234 Country Rd"></div>
+              <div class="form-row"><div class="field"><label>City</label><input value="Springfield"></div><div class="field"><label>ZIP code</label><input value="94016"></div></div>
+            </div>
+            <div class="form-card">
+              <h3>Payment method</h3>
+              <div class="pay-methods">
+                <label class="on">Credit card</label>
+                <label>PayPal</label>
+                <label>Apple Pay</label>
+              </div>
+            </div>
+          </div>
+          <div class="summary-card">
+            <h3>Order summary</h3>
+            <div class="mini-line"><div class="t"><svg class="icon"><use href="#i-electronics"/></svg></div><div class="name">Headphones ×1</div><div class="v">$129.00</div></div>
+            <div class="mini-line"><div class="t"><svg class="icon"><use href="#i-home"/></svg></div><div class="name">Coffee set ×1</div><div class="v">$48.00</div></div>
+            <div class="mini-line"><div class="t"><svg class="icon"><use href="#i-grocery"/></svg></div><div class="name">Skillet ×2</div><div class="v">$128.00</div></div>
+            <div class="summary-row total"><span>Total</span><span class="v">$332.84</span></div>
+            <button class="btn btn-accent btn-block" style="margin-top:1rem">Place order</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- PROFILE -->
+      <section class="page" data-key="profile">
+        <div class="sec-head"><h1>My Profile</h1></div>
+        <div class="checkout-grid">
+          <div>
+            <div class="form-card">
+              <h3>Personal details</h3>
+              <div class="form-row"><div class="field"><label>Display name</label><input value="Jitendra Gupta"></div><div class="field"><label>Email</label><input type="email" value="jitendra.g@curiticshealth.com"></div></div>
+              <div class="field" style="margin-bottom:0"><label>Phone number</label><input value="+1 (555) 019-2043"></div>
+            </div>
+            <button class="btn btn-accent">Save changes</button>
+          </div>
+          <div class="summary-card">
+            <h3>Profile photo</h3>
+            <div class="avatar-upload">
+              <div class="avatar-lg">JG</div>
+              <div class="avatar-upload-actions">
+                <button class="btn btn-outline btn-sm">Upload photo</button>
+                <button class="remove">Remove photo</button>
+              </div>
+              <p class="result-count">JPG or PNG, up to 5MB.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- AUTH -->
+      <section class="page" data-key="auth">
+        <div class="auth-split">
+          <div class="auth-brand-panel">
+            <div class="brand-lockup">
+              <svg class="brand-logo-lg" viewBox="0 0 96 96" fill="none" stroke-linecap="round" aria-hidden="true"><path d="M12 62c8-24 20-38 36-38s28 14 36 38" stroke="var(--primary)" stroke-width="6"/><path d="M20 74c6-18 15-28 28-28s22 10 28 28" stroke="var(--accent)" stroke-width="5" opacity="0.6"/></svg>
+              <div class="brand-lockup-text">ShopFlow</div>
+              <p class="brand-tagline">Everything you need, one marketplace.</p>
+            </div>
+          </div>
+          <div class="auth-divider"></div>
+          <div class="auth-form-panel">
+            <div class="auth-form">
+              <h2>Welcome back</h2>
+              <p class="sub">Sign in to track orders and manage your wishlist.</p>
+              <div class="field"><label>Email</label><input value="jitendra.g@curiticshealth.com"></div>
+              <div class="field"><label>Password</label><input type="password" class="f err" value="••••••••"></div>
+              <div class="errtext">⚠ That password doesn't match this account.</div>
+              <div class="row-between"><label><input type="checkbox"> Remember me</label><a style="color:var(--primary);font-weight:600" data-target="forgot-password" href="#">Forgot password?</a></div>
+              <button class="btn btn-primary btn-block">Sign in</button>
+              <div class="switch">New to ShopFlow? <a data-target="register" href="#">Create an account</a></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- REGISTER -->
+      <section class="page" data-key="register">
+        <div class="auth-split">
+          <div class="auth-brand-panel">
+            <div class="brand-lockup">
+              <svg class="brand-logo-lg" viewBox="0 0 96 96" fill="none" stroke-linecap="round" aria-hidden="true"><path d="M12 62c8-24 20-38 36-38s28 14 36 38" stroke="var(--primary)" stroke-width="6"/><path d="M20 74c6-18 15-28 28-28s22 10 28 28" stroke="var(--accent)" stroke-width="5" opacity="0.6"/></svg>
+              <div class="brand-lockup-text">ShopFlow</div>
+              <p class="brand-tagline">Everything you need, one marketplace.</p>
+            </div>
+          </div>
+          <div class="auth-divider"></div>
+          <div class="auth-form-panel">
+            <div class="auth-form">
+              <h2>Create your account</h2>
+              <p class="sub">Join ShopFlow to shop across independent vendors.</p>
+              <div class="field"><label>Display name</label><input value="Jitendra Gupta"></div>
+              <div class="field"><label>Email</label><input value="jitendra.g@curiticshealth.com"></div>
+              <div class="field"><label>Password</label><input type="password" value="••••••••"><span class="hint">Min 8 characters, with upper, lower, digit, and special character.</span></div>
+              <button class="btn btn-primary btn-block">Register</button>
+              <div class="switch">Already have an account? <a data-target="auth" href="#">Login</a></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FORGOT PASSWORD -->
+      <section class="page" data-key="forgot-password">
+        <div class="auth-split">
+          <div class="auth-brand-panel">
+            <div class="brand-lockup">
+              <svg class="brand-logo-lg" viewBox="0 0 96 96" fill="none" stroke-linecap="round" aria-hidden="true"><path d="M12 62c8-24 20-38 36-38s28 14 36 38" stroke="var(--primary)" stroke-width="6"/><path d="M20 74c6-18 15-28 28-28s22 10 28 28" stroke="var(--accent)" stroke-width="5" opacity="0.6"/></svg>
+              <div class="brand-lockup-text">ShopFlow</div>
+              <p class="brand-tagline">Everything you need, one marketplace.</p>
+            </div>
+          </div>
+          <div class="auth-divider"></div>
+          <div class="auth-form-panel">
+            <div class="auth-form">
+              <h2>Reset your password</h2>
+              <p class="sub">Enter the email on your account and we'll send you a link to reset your password.</p>
+              <div class="field"><label>Email</label><input value="jitendra.g@curiticshealth.com"></div>
+              <button class="btn btn-primary btn-block" data-target="reset-password">Send reset link</button>
+              <div class="switch">Remember your password? <a data-target="auth" href="#">Login</a></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RESET PASSWORD (from emailed link) -->
+      <section class="page" data-key="reset-password">
+        <div class="auth-split">
+          <div class="auth-brand-panel">
+            <div class="brand-lockup">
+              <svg class="brand-logo-lg" viewBox="0 0 96 96" fill="none" stroke-linecap="round" aria-hidden="true"><path d="M12 62c8-24 20-38 36-38s28 14 36 38" stroke="var(--primary)" stroke-width="6"/><path d="M20 74c6-18 15-28 28-28s22 10 28 28" stroke="var(--accent)" stroke-width="5" opacity="0.6"/></svg>
+              <div class="brand-lockup-text">ShopFlow</div>
+              <p class="brand-tagline">Everything you need, one marketplace.</p>
+            </div>
+          </div>
+          <div class="auth-divider"></div>
+          <div class="auth-form-panel">
+            <div class="auth-form">
+              <h2>Set a new password</h2>
+              <p class="sub">Choose a new password for <strong style="color:var(--primary)" data-role="rp-email">jitendra.g@curiticshealth.com</strong>.</p>
+              <div class="field"><label>New password</label><input type="password" value="••••••••"><span class="hint">Min 8 characters, with upper, lower, digit, and special character.</span></div>
+              <div class="field"><label>Confirm new password</label><input type="password" value="••••••••"></div>
+              <button class="btn btn-primary btn-block" id="reset-password-submit" data-target="auth">Reset password</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <footer class="site"><div class="wrap"><span>© 2026 ShopFlow</span><span>Privacy · Terms · Support</span></div></footer>
+</div>
+
+<!-- ============================ ADMIN / VENDOR SHELL ============================ -->
+<div class="shell-admin">
+  <div class="admin-topbar">
+    <a class="brand"><svg class="brand-logo" viewBox="0 0 32 32" fill="none" stroke="var(--primary)" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M4 22c3-8 7-13 12-13s9 5 12 13"/></svg><span class="brand-text">ShopFlow</span></a>
+    <span class="topbar-label" data-scope="vendor">Terra &amp; Co. — Vendor Portal</span>
+    <span class="topbar-label" data-scope="admin">Platform Admin Console</span>
+  </div>
+  <div class="admin-body">
+    <aside class="admin-sidebar" data-scope="vendor">
+      <div class="grp">Overview</div>
+      <a class="active" data-target="vendor" href="#"><svg class="icon"><use href="#i-grid"/></svg>Dashboard</a>
+      <a data-target="vendor-orders" href="#"><svg class="icon"><use href="#i-box"/></svg>Orders</a>
+      <a data-target="vendor-products" href="#"><svg class="icon"><use href="#i-tag"/></svg>Products</a>
+      <a data-target="vendor-profile" href="#"><svg class="icon"><use href="#i-store"/></svg>Profile</a>
+      <div class="grp">Account</div>
+      <a href="#"><svg class="icon"><use href="#i-store"/></svg>Storefront</a>
+      <a href="#"><svg class="icon"><use href="#i-users"/></svg>Team</a>
+    </aside>
+
+    <aside class="admin-sidebar" data-scope="admin">
+      <div class="grp">Overview</div>
+      <a class="active" data-target="admin-dashboard" href="#"><svg class="icon"><use href="#i-chart"/></svg>Dashboard</a>
+      <a data-target="admin" href="#"><svg class="icon"><use href="#i-box"/></svg>Orders</a>
+      <div class="grp">Catalog</div>
+      <a data-target="admin-products" href="#"><svg class="icon"><use href="#i-tag"/></svg>Products</a>
+      <a data-target="admin-categories" href="#"><svg class="icon"><use href="#i-grid"/></svg>Categories</a>
+      <div class="grp">Users</div>
+      <a data-target="admin-vendors" href="#"><svg class="icon"><use href="#i-store"/></svg>Vendors</a>
+      <a data-target="admin-customers" href="#"><svg class="icon"><use href="#i-users"/></svg>Customers</a>
+    </aside>
+
+    <main class="admin-main">
+      <!-- VENDOR DASHBOARD -->
+      <section class="page" data-key="vendor">
+        <div class="admin-head">
+          <h1>Dashboard</h1>
+          <select class="sort-select"><option>Last 30 days</option><option>Last 90 days</option><option>This year</option></select>
+        </div>
+
+        <div class="stat-row">
+          <div class="stat-card" style="--stripe:var(--primary)">
+            <div class="l">Revenue</div><div class="n">$11,520</div><div class="d up">▲ 4% vs last period</div>
+            <svg class="spark" viewBox="0 0 70 22" width="70" height="22" aria-hidden="true"><polyline points="2,17 10,15 18,16 26,13 34,14 42,10 50,11 58,7 66,5" fill="none" stroke="var(--border-strong)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="58,7 66,5" fill="none" stroke="var(--accent-strong)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="66" cy="5" r="2.2" fill="var(--accent-strong)"/></svg>
+          </div>
+          <div class="stat-card" style="--stripe:var(--accent)">
+            <div class="l">Orders</div><div class="n">96</div><div class="d up">▲ 4% vs last period</div>
+            <svg class="spark" viewBox="0 0 70 22" width="70" height="22" aria-hidden="true"><polyline points="2,15 10,16 18,13 26,14 34,11 42,12 50,9 58,10 66,7" fill="none" stroke="var(--border-strong)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="58,10 66,7" fill="none" stroke="var(--accent-strong)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="66" cy="7" r="2.2" fill="var(--accent-strong)"/></svg>
+          </div>
+          <div class="stat-card" style="--stripe:var(--warning)">
+            <div class="l">Low stock</div><div class="n">2</div><div class="d down">▲ 1 new</div>
+            <svg class="spark" viewBox="0 0 70 22" width="70" height="22" aria-hidden="true"><polyline points="2,14 10,13 18,15 26,12 34,13 42,10 50,11 58,9 66,10" fill="none" stroke="var(--border-strong)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="58,9 66,10" fill="none" stroke="var(--accent-strong)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="66" cy="10" r="2.2" fill="var(--accent-strong)"/></svg>
+          </div>
+          <div class="stat-card" style="--stripe:var(--success)">
+            <div class="l">Rating</div><div class="n">4.7</div><div class="d up">★★★★★</div>
+            <svg class="spark" viewBox="0 0 70 22" width="70" height="22" aria-hidden="true"><polyline points="2,10 10,11 18,9 26,10 34,8 42,9 50,7 58,8 66,6" fill="none" stroke="var(--border-strong)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="58,8 66,6" fill="none" stroke="var(--accent-strong)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="66" cy="6" r="2.2" fill="var(--accent-strong)"/></svg>
+          </div>
+        </div>
+
+        <div class="dash-grid">
+          <div class="dash-card">
+            <h3>Revenue trend</h3>
+            <div class="sub up">▲ 4% vs previous 12 weeks</div>
+            <svg class="trend-chart" viewBox="0 0 560 150" preserveAspectRatio="none" role="img" aria-label="Weekly revenue over the last 12 weeks, trending up from $1.8K to $3.0K">
+              <line class="grid-line" x1="20" y1="20" x2="540" y2="20"/>
+              <line class="grid-line" x1="20" y1="56.7" x2="540" y2="56.7"/>
+              <line class="grid-line" x1="20" y1="93.3" x2="540" y2="93.3"/>
+              <line class="grid-line" x1="20" y1="130" x2="540" y2="130"/>
+              <polygon class="area" points="20,130 20,110.6 67.3,104.1 114.5,97.7 161.8,117.1 209.1,91.2 256.4,78.2 303.6,97.7 350.9,71.8 398.2,58.8 445.5,65.3 492.7,45.9 540,32.9 540,130"/>
+              <polyline class="line" points="20,110.6 67.3,104.1 114.5,97.7 161.8,117.1 209.1,91.2 256.4,78.2 303.6,97.7 350.9,71.8 398.2,58.8 445.5,65.3 492.7,45.9 540,32.9"/>
+              <circle class="pt" cx="20" cy="110.6" r="10"><title>12 weeks ago: $1.8K</title></circle>
+              <circle class="pt" cx="67.3" cy="104.1" r="10"><title>11 weeks ago: $1.9K</title></circle>
+              <circle class="pt" cx="114.5" cy="97.7" r="10"><title>10 weeks ago: $2.0K</title></circle>
+              <circle class="pt" cx="161.8" cy="117.1" r="10"><title>9 weeks ago: $1.7K</title></circle>
+              <circle class="pt" cx="209.1" cy="91.2" r="10"><title>8 weeks ago: $2.1K</title></circle>
+              <circle class="pt" cx="256.4" cy="78.2" r="10"><title>7 weeks ago: $2.3K</title></circle>
+              <circle class="pt" cx="303.6" cy="97.7" r="10"><title>6 weeks ago: $2.0K</title></circle>
+              <circle class="pt" cx="350.9" cy="71.8" r="10"><title>5 weeks ago: $2.4K</title></circle>
+              <circle class="pt" cx="398.2" cy="58.8" r="10"><title>4 weeks ago: $2.6K</title></circle>
+              <circle class="pt" cx="445.5" cy="65.3" r="10"><title>3 weeks ago: $2.5K</title></circle>
+              <circle class="pt" cx="492.7" cy="45.9" r="10"><title>2 weeks ago: $2.8K</title></circle>
+              <circle class="pt" cx="540" cy="32.9" r="10"><title>This week: $3.0K</title></circle>
+              <circle class="end-dot" cx="540" cy="32.9" r="4"/>
+              <text class="end-label" x="495" y="25">$3.0K</text>
+            </svg>
+            <div class="trend-foot"><span>12 weeks ago</span><span>This week</span></div>
+          </div>
+          <div class="dash-card">
+            <h3>Revenue by category</h3>
+            <div class="sub">Last 30 days</div>
+            <div class="bar-list">
+              <div class="row"><div class="label"><svg class="icon"><use href="#i-home"/></svg><span>Home &amp; Kitchen</span></div><div class="track"><div class="fill" style="width:100%"></div></div><div class="val">$8,640</div></div>
+              <div class="row"><div class="label"><svg class="icon"><use href="#i-grocery"/></svg><span>Grocery</span></div><div class="track"><div class="fill" style="width:33%"></div></div><div class="val">$2,880</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dash-grid">
+          <div class="dash-card">
+            <div class="section-head"><h3>Recent orders</h3><span class="result-count">Last 30 days</span></div>
+            <table class="data-table">
+              <thead><tr><th>Order</th><th>Customer</th><th>Status</th><th style="text-align:right">Total</th></tr></thead>
+              <tbody>
+                <tr><td class="mono">#10482</td><td><div class="customer-cell"><span class="ic">JG</span>J. Gupta</div></td><td><span class="status-chip pending">Pending</span></td><td class="num">$48.00</td></tr>
+                <tr><td class="mono">#10475</td><td><div class="customer-cell"><span class="ic">MC</span>M. Chen</div></td><td><span class="status-chip ok">Shipped</span></td><td class="num">$76.00</td></tr>
+                <tr><td class="mono">#10470</td><td><div class="customer-cell"><span class="ic">AR</span>A. Rossi</div></td><td><span class="status-chip ok">Shipped</span></td><td class="num">$34.00</td></tr>
+                <tr><td class="mono">#10466</td><td><div class="customer-cell"><span class="ic">SP</span>S. Patel</div></td><td><span class="status-chip fail">Cancelled</span></td><td class="num">$28.00</td></tr>
+                <tr><td class="mono">#10460</td><td><div class="customer-cell"><span class="ic">RN</span>R. Novak</div></td><td><span class="status-chip ok">Shipped</span></td><td class="num">$62.00</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="dash-card">
+            <h3>My customers</h3>
+            <div class="sub">Last 30 days</div>
+            <div class="meter-row"><span>Repeat purchase rate</span><span class="v">54%</span></div>
+            <div class="meter"><div class="f" style="width:54%"></div></div>
+            <div class="mini-stat-row">
+              <div class="mini-stat"><div class="l">New buyers</div><div class="n">22</div><div class="d up">▲ 5%</div></div>
+              <div class="mini-stat"><div class="l">Returning</div><div class="n">38</div><div class="d up">▲ 2%</div></div>
+              <div class="mini-stat"><div class="l">Avg. order value</div><div class="n">$120.00</div><div class="d up">▲ 3%</div></div>
+              <div class="mini-stat"><div class="l">Total buyers</div><div class="n">60</div><div class="d up">▲ 4%</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-head"><h3>Trending this week</h3><span class="result-count">Ranked by week-over-week sales growth</span></div>
+        <table class="data-table" style="margin-bottom:1.75rem">
+          <thead><tr><th>Product</th><th>Category</th><th>Trend</th><th style="text-align:right">Units sold (7d)</th><th style="text-align:right">Stock left</th></tr></thead>
+          <tbody>
+            <tr><td><div class="prod-cell"><span class="ic"><svg class="icon"><use href="#i-home"/></svg></span>Ceramic Pour-Over Coffee Set</div></td><td>Home &amp; Kitchen</td><td><span class="status-chip ok">▲ 42%</span></td><td class="num">38</td><td class="num">0</td></tr>
+            <tr><td><div class="prod-cell"><span class="ic"><svg class="icon"><use href="#i-home"/></svg></span>Stoneware Serving Bowl, Set of 3</div></td><td>Home &amp; Kitchen</td><td><span class="status-chip ok">▲ 27%</span></td><td class="num">22</td><td class="num">5</td></tr>
+            <tr><td><div class="prod-cell"><span class="ic"><svg class="icon"><use href="#i-grocery"/></svg></span>Small-Batch Maple Syrup, 12oz</div></td><td>Grocery</td><td><span class="status-chip ok">▲ 12%</span></td><td class="num">30</td><td class="num">60</td></tr>
+          </tbody>
+        </table>
+
+        <div class="section-head"><h3>Keep in stock</h3><span class="result-count">High-velocity items at risk of stocking out</span></div>
+        <table class="data-table" style="margin-bottom:1.75rem">
+          <thead><tr><th>Product</th><th style="text-align:right">Stock left</th><th style="text-align:right">Sell-through</th><th style="text-align:right">Days left</th><th>Urgency</th><th></th></tr></thead>
+          <tbody>
+            <tr><td>Ceramic Pour-Over Coffee Set</td><td class="num">0</td><td class="num">2.4/day</td><td class="num">0</td><td><span class="urgency-chip critical">Critical</span></td><td><button class="btn btn-outline btn-sm">Reorder</button></td></tr>
+            <tr><td>Stoneware Serving Bowl, Set of 3</td><td class="num">5</td><td class="num">1.1/day</td><td class="num">5</td><td><span class="urgency-chip low">Low</span></td><td><button class="btn btn-outline btn-sm">Reorder</button></td></tr>
+          </tbody>
+        </table>
+
+        <div class="section-head"><h3>Discount to clear stock</h3><span class="result-count">Slow movers aging in inventory</span></div>
+        <table class="data-table">
+          <thead><tr><th>Product</th><th style="text-align:right">Stock on hand</th><th style="text-align:right">Days in inventory</th><th style="text-align:right">Sell-through</th><th style="text-align:right">Suggested discount</th><th></th></tr></thead>
+          <tbody>
+            <tr><td>Linen Kitchen Towel Set</td><td class="num">40</td><td class="num">96</td><td class="num">0.3/day</td><td class="num">20%</td><td><button class="btn btn-outline btn-sm">Apply discount</button></td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- VENDOR ORDERS -->
+      <section class="page" data-key="vendor-orders">
+        <div class="admin-head"><h1>Orders</h1></div>
+        <div class="table-toolbar">
+          <div style="display:flex;gap:.6rem;flex-wrap:wrap">
+            <input type="text" placeholder="Search order # or customer">
+            <select class="sort-select">
+              <option>All statuses</option>
+              <option>Pending</option>
+              <option>Shipped</option>
+              <option>Cancelled</option>
+            </select>
+          </div>
+          <div class="row-actions"><button>Export</button></div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Order</th><th>Customer</th><th>Status</th><th style="text-align:right">Total</th><th></th></tr></thead>
+          <tbody>
+            <tr><td class="mono">#10482</td><td><div class="customer-cell"><span class="ic">JG</span>J. Gupta</div></td><td><span class="status-chip pending">Pending</span></td><td class="num">$48.00</td><td><div class="row-actions"><button data-target="vendor-order-detail">View</button></div></td></tr>
+            <tr><td class="mono">#10475</td><td><div class="customer-cell"><span class="ic">MC</span>M. Chen</div></td><td><span class="status-chip ok">Shipped</span></td><td class="num">$76.00</td><td><div class="row-actions"><button data-target="vendor-order-detail">View</button></div></td></tr>
+            <tr><td class="mono">#10470</td><td><div class="customer-cell"><span class="ic">AR</span>A. Rossi</div></td><td><span class="status-chip ok">Shipped</span></td><td class="num">$34.00</td><td><div class="row-actions"><button data-target="vendor-order-detail">View</button></div></td></tr>
+            <tr><td class="mono">#10466</td><td><div class="customer-cell"><span class="ic">SP</span>S. Patel</div></td><td><span class="status-chip fail">Cancelled</span></td><td class="num">$28.00</td><td><div class="row-actions"><button data-target="vendor-order-detail">View</button></div></td></tr>
+            <tr><td class="mono">#10460</td><td><div class="customer-cell"><span class="ic">RN</span>R. Novak</div></td><td><span class="status-chip ok">Shipped</span></td><td class="num">$62.00</td><td><div class="row-actions"><button data-target="vendor-order-detail">View</button></div></td></tr>
+            <tr><td class="mono">#10455</td><td><div class="customer-cell"><span class="ic">JG</span>J. Gupta</div></td><td><span class="status-chip ok">Shipped</span></td><td class="num">$48.00</td><td><div class="row-actions"><button data-target="vendor-order-detail">View</button></div></td></tr>
+            <tr><td class="mono">#10448</td><td><div class="customer-cell"><span class="ic">MC</span>M. Chen</div></td><td><span class="status-chip ok">Shipped</span></td><td class="num">$110.00</td><td><div class="row-actions"><button data-target="vendor-order-detail">View</button></div></td></tr>
+            <tr><td class="mono">#10441</td><td><div class="customer-cell"><span class="ic">AR</span>A. Rossi</div></td><td><span class="status-chip fail">Cancelled</span></td><td class="num">$34.00</td><td><div class="row-actions"><button data-target="vendor-order-detail">View</button></div></td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- VENDOR ORDER DETAIL -->
+      <section class="page" data-key="vendor-order-detail">
+        <div class="crumb"><a data-target="vendor-orders" href="#">Orders</a> / <b>#10482</b></div>
+        <div class="admin-head">
+          <div>
+            <h1>Order #10482</h1>
+            <div class="result-count">Placed Aug 22, 2026 &middot; <span class="status-chip pending">Pending</span></div>
+          </div>
+          <div class="result-count">Your total <span class="mono" style="font-size:1.15rem;font-weight:700;color:var(--text)">$48.00</span></div>
+        </div>
+
+        <div class="dash-grid" style="grid-template-columns:1fr 1fr">
+          <div class="dash-card">
+            <h3>Customer</h3>
+            <div class="customer-cell" style="margin:.7rem 0 1rem;font-size:.95rem"><span class="ic">JG</span>J. Gupta</div>
+            <table class="spec-table">
+              <tr><td>Email</td><td>jitendra.g@curiticshealth.com</td></tr>
+              <tr><td>Shipping address</td><td>1234 Country Rd, Springfield, 94016</td></tr>
+            </table>
+          </div>
+          <div class="dash-card">
+            <h3>Your items</h3>
+            <table class="data-table">
+              <thead><tr><th>Product</th><th style="text-align:right">Qty</th><th style="text-align:right">Unit price</th><th style="text-align:right">Total</th></tr></thead>
+              <tbody>
+                <tr><td><div class="prod-cell"><span class="ic"><svg class="icon"><use href="#i-home"/></svg></span>Ceramic Pour-Over Coffee Set</div></td><td class="num">1</td><td class="num">$48.00</td><td class="num">$48.00</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="dash-card">
+          <div class="section-head"><h3>Fulfillment</h3><span class="status-chip pending">Pending</span></div>
+          <p class="result-count" style="margin:0">Awaiting payment confirmation from customer. This order also includes items from other vendors — you can only see and manage your own items.</p>
+        </div>
+      </section>
+
+      <!-- VENDOR PRODUCTS -->
+      <section class="page" data-key="vendor-products">
+        <div class="admin-head"><h1>Products</h1><button class="btn btn-primary btn-sm" data-target="vendor-product-edit" data-form-mode="add">+ Add product</button></div>
+        <div class="table-toolbar">
+          <div style="display:flex;gap:.6rem;flex-wrap:wrap">
+            <input type="text" placeholder="Search products">
+            <select class="sort-select">
+              <option>All categories</option>
+              <option>Home &amp; Kitchen</option>
+              <option>Grocery</option>
+            </select>
+            <select class="sort-select">
+              <option>All statuses</option>
+              <option>Active</option>
+              <option>Low stock</option>
+              <option>Out of stock</option>
+              <option>Draft</option>
+            </select>
+          </div>
+          <div class="row-actions"><button>Export</button></div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Product</th><th>Category</th><th style="text-align:right">Stock</th><th>Status</th><th style="text-align:right">Price</th><th style="text-align:right">Total value</th><th></th></tr></thead>
+          <tbody>
+            <tr><td><div class="prod-cell"><span class="ic"><svg class="icon"><use href="#i-home"/></svg></span>Ceramic Pour-Over Coffee Set</div></td><td><svg class="icon" style="margin-right:.5rem"><use href="#i-home"/></svg>Home &amp; Kitchen</td><td class="num">0</td><td><span class="status-chip fail">Out of stock</span></td><td class="num">$48.00</td><td class="num">$0.00</td><td><div class="row-actions"><button data-target="vendor-product-edit" data-form-mode="edit">Edit</button></div></td></tr>
+            <tr><td><div class="prod-cell"><span class="ic"><svg class="icon"><use href="#i-home"/></svg></span>Stoneware Serving Bowl, Set of 3</div></td><td><svg class="icon" style="margin-right:.5rem"><use href="#i-home"/></svg>Home &amp; Kitchen</td><td class="num">5</td><td><span class="status-chip pending">Low stock</span></td><td class="num">$62.00</td><td class="num">$310.00</td><td><div class="row-actions"><button data-target="vendor-product-edit" data-form-mode="edit">Edit</button></div></td></tr>
+            <tr><td><div class="prod-cell"><span class="ic"><svg class="icon"><use href="#i-home"/></svg></span>Bamboo Cutting Board, Set of 2</div></td><td><svg class="icon" style="margin-right:.5rem"><use href="#i-home"/></svg>Home &amp; Kitchen</td><td class="num">24</td><td><span class="status-chip ok">Active</span></td><td class="num">$36.00</td><td class="num">$864.00</td><td><div class="row-actions"><button data-target="vendor-product-edit" data-form-mode="edit">Edit</button></div></td></tr>
+            <tr><td><div class="prod-cell"><span class="ic"><svg class="icon"><use href="#i-home"/></svg></span>Linen Kitchen Towel Set</div></td><td><svg class="icon" style="margin-right:.5rem"><use href="#i-home"/></svg>Home &amp; Kitchen</td><td class="num">40</td><td><span class="status-chip ok">Active</span></td><td class="num">$28.00</td><td class="num">$1,120.00</td><td><div class="row-actions"><button data-target="vendor-product-edit" data-form-mode="edit">Edit</button></div></td></tr>
+            <tr><td><div class="prod-cell"><span class="ic"><svg class="icon"><use href="#i-grocery"/></svg></span>Small-Batch Maple Syrup, 12oz</div></td><td><svg class="icon" style="margin-right:.5rem"><use href="#i-grocery"/></svg>Grocery</td><td class="num">60</td><td><span class="status-chip ok">Active</span></td><td class="num">$16.00</td><td class="num">$960.00</td><td><div class="row-actions"><button data-target="vendor-product-edit" data-form-mode="edit">Edit</button></div></td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- VENDOR PRODUCT EDIT / ADD -->
+      <section class="page" data-key="vendor-product-edit" data-mode="edit">
+        <div class="crumb"><a data-target="vendor-products" href="#">Products</a> / <b><span data-mode-text="edit">Edit product</span><span data-mode-text="add">Add product</span></b></div>
+        <div class="admin-head">
+          <h1><span data-mode-text="edit">Edit product</span><span data-mode-text="add">Add product</span></h1>
+          <div class="row-actions">
+            <button class="btn btn-outline btn-sm" data-target="vendor-products">Cancel</button>
+            <button class="btn btn-primary btn-sm" data-target="vendor-products"><span data-mode-text="edit">Save changes</span><span data-mode-text="add">Create product</span></button>
+          </div>
+        </div>
+        <div class="checkout-grid">
+          <div>
+            <div class="form-card">
+              <h3>Image</h3>
+              <div class="upload-drop" data-role="upload-drop">
+                <label>
+                  <input type="file" accept="image/*" data-role="upload-input" style="display:none">
+                  <div class="upload-preview" data-role="upload-preview"><svg class="icon"><use href="#i-home"/></svg></div>
+                  <div class="upload-text"><strong>Click to upload</strong> or drag and drop<br><span class="result-count">PNG or JPG, up to 5MB</span></div>
+                </label>
+                <button type="button" class="upload-remove" data-role="upload-remove">Remove</button>
+              </div>
+            </div>
+            <div class="form-card">
+              <h3>Details</h3>
+              <div class="field" style="margin-bottom:1rem"><label>Product name</label><input data-role="name" data-default="Ceramic Pour-Over Coffee Set" value="Ceramic Pour-Over Coffee Set" placeholder="e.g. Ceramic Pour-Over Coffee Set"></div>
+              <div class="field" style="margin-bottom:1rem"><label>Category</label><select data-default="Home &amp; Kitchen"><option>Home &amp; Kitchen</option><option>Grocery</option></select></div>
+              <div class="field" style="margin-bottom:0"><label>Description</label><textarea rows="4" data-default="Hand-glazed stoneware pour-over set with a reusable stainless steel filter. Makes 2 cups per brew." placeholder="Describe the product…">Hand-glazed stoneware pour-over set with a reusable stainless steel filter. Makes 2 cups per brew.</textarea></div>
+            </div>
+            <div class="form-card" style="margin-bottom:0">
+              <h3>Pricing &amp; inventory</h3>
+              <div class="form-row">
+                <div class="field"><label>Price</label><input data-role="price" data-default="48.00" value="48.00" placeholder="0.00"></div>
+                <div class="field"><label>Compare-at price</label><input data-role="compare" data-default="" value="" placeholder="0.00"></div>
+              </div>
+              <div class="form-row" style="margin-bottom:0">
+                <div class="field"><label>Stock quantity</label><input data-role="stock" data-default="0" value="0" placeholder="0"></div>
+                <div class="field"><label>Status</label><select data-default="Out of stock"><option>Out of stock</option><option>Active</option><option>Low stock</option><option>Draft</option></select></div>
+              </div>
+            </div>
+          </div>
+          <div class="summary-card">
+            <h3>Preview</h3>
+            <div class="p-card">
+              <div class="thumb" data-role="preview-thumb"><svg viewBox="0 0 24 24"><use href="#i-home"/></svg></div>
+              <div class="body">
+                <div class="vendor">Terra &amp; Co.</div>
+                <div class="name" data-role="preview-name">Ceramic Pour-Over Coffee Set</div>
+                <div class="price-row"><span class="price" data-role="preview-price">$48.00</span><span class="was" data-role="preview-was">$0.00</span></div>
+              </div>
+            </div>
+            <div class="result-count" style="margin-top:1rem"><span data-mode-text="edit">This is how the product will appear in the catalog.</span><span data-mode-text="add">This is how the new product will appear in the catalog once created.</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- VENDOR PROFILE -->
+      <section class="page" data-key="vendor-profile">
+        <div class="admin-head"><h1>Business Profile</h1><button class="btn btn-primary btn-sm">Save changes</button></div>
+        <div class="checkout-grid">
+          <div>
+            <div class="form-card">
+              <h3>Business details</h3>
+              <div class="form-row"><div class="field"><label>Business name</label><input value="Terra &amp; Co."></div><div class="field"><label>Contact email</label><input type="email" value="contact@terraco.com"></div></div>
+              <div class="field" style="margin-bottom:0"><label>Phone number</label><input value="+1 (555) 402-7788"></div>
+            </div>
+            <div class="form-card" style="margin-bottom:0">
+              <h3>Registered address</h3>
+              <div class="field" style="margin-bottom:1rem"><label>Street address</label><input value="482 Market Street, Suite 210"></div>
+              <div class="form-row"><div class="field"><label>City</label><input value="San Francisco"></div><div class="field"><label>State</label><input value="CA"></div></div>
+              <div class="form-row" style="margin-bottom:0"><div class="field"><label>ZIP code</label><input value="94105"></div><div class="field"><label>Country</label><input value="USA"></div></div>
+            </div>
+          </div>
+          <div class="summary-card">
+            <h3>Business logo</h3>
+            <div class="upload-drop" data-role="upload-drop">
+              <label>
+                <input type="file" accept="image/*" data-role="upload-input" style="display:none">
+                <div class="upload-preview" data-role="upload-preview"><svg class="icon"><use href="#i-store"/></svg></div>
+                <div class="upload-text"><strong>Click to upload</strong> or drag and drop<br><span class="result-count">PNG or JPG, up to 5MB</span></div>
+              </label>
+              <button type="button" class="upload-remove" data-role="upload-remove">Remove</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ADMIN DASHBOARD -->
+      <section class="page" data-key="admin-dashboard">
+        <div class="admin-head">
+          <h1>Dashboard</h1>
+          <select class="sort-select"><option>Last 30 days</option><option>Last 90 days</option><option>This year</option></select>
+        </div>
+
+        <div class="stat-row">
+          <div class="stat-card" style="--stripe:var(--primary)">
+            <div class="l">Revenue</div><div class="n">$142,860</div><div class="d up">▲ 9.4% vs last period</div>
+            <svg class="spark" viewBox="0 0 70 22" width="70" height="22" aria-hidden="true"><polyline points="2,18 10,16 18,17 26,13 34,14 42,10 50,11 58,6 66,4" fill="none" stroke="var(--border-strong)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="58,6 66,4" fill="none" stroke="var(--accent-strong)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="66" cy="4" r="2.2" fill="var(--accent-strong)"/></svg>
+          </div>
+          <div class="stat-card" style="--stripe:var(--accent)">
+            <div class="l">Orders</div><div class="n">1,842</div><div class="d up">▲ 6.1% vs last period</div>
+            <svg class="spark" viewBox="0 0 70 22" width="70" height="22" aria-hidden="true"><polyline points="2,17 10,15 18,16 26,12 34,13 42,9 50,10 58,7 66,5" fill="none" stroke="var(--border-strong)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="58,7 66,5" fill="none" stroke="var(--accent-strong)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="66" cy="5" r="2.2" fill="var(--accent-strong)"/></svg>
+          </div>
+          <div class="stat-card" style="--stripe:var(--warning)">
+            <div class="l">Active vendors</div><div class="n">27</div><div class="d up">▲ 2 new</div>
+            <svg class="spark" viewBox="0 0 70 22" width="70" height="22" aria-hidden="true"><polyline points="2,12 10,13 18,11 26,12 34,10 42,11 50,9 58,10 66,8" fill="none" stroke="var(--border-strong)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="58,10 66,8" fill="none" stroke="var(--accent-strong)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="66" cy="8" r="2.2" fill="var(--accent-strong)"/></svg>
+          </div>
+          <div class="stat-card" style="--stripe:var(--success)">
+            <div class="l">Active customers</div><div class="n">3,214</div><div class="d up">▲ 4.8% vs last period</div>
+            <svg class="spark" viewBox="0 0 70 22" width="70" height="22" aria-hidden="true"><polyline points="2,19 10,17 18,15 26,16 34,12 42,13 50,9 58,7 66,5" fill="none" stroke="var(--border-strong)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><polyline points="58,7 66,5" fill="none" stroke="var(--accent-strong)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="66" cy="5" r="2.2" fill="var(--accent-strong)"/></svg>
+          </div>
+        </div>
+
+        <div class="dash-grid">
+          <div class="dash-card">
+            <h3>Revenue trend</h3>
+            <div class="sub up">▲ 9.4% vs previous 12 weeks</div>
+            <svg class="trend-chart" viewBox="0 0 560 150" preserveAspectRatio="none" role="img" aria-label="Weekly revenue over the last 12 weeks, trending up from $8.2K to $13.1K">
+              <line class="grid-line" x1="20" y1="20" x2="540" y2="20"/>
+              <line class="grid-line" x1="20" y1="56.7" x2="540" y2="56.7"/>
+              <line class="grid-line" x1="20" y1="93.3" x2="540" y2="93.3"/>
+              <line class="grid-line" x1="20" y1="130" x2="540" y2="130"/>
+              <polygon class="area" points="20,130 20,111.1 67.3,104.9 114.5,112.7 161.8,92.3 209.1,98.6 256.4,79.7 303.6,86.0 350.9,65.6 398.2,73.4 445.5,54.6 492.7,45.1 540,34.1 540,130"/>
+              <polyline class="line" points="20,111.1 67.3,104.9 114.5,112.7 161.8,92.3 209.1,98.6 256.4,79.7 303.6,86.0 350.9,65.6 398.2,73.4 445.5,54.6 492.7,45.1 540,34.1"/>
+              <circle class="pt" cx="20" cy="111.1" r="10"><title>12 weeks ago: $8.2K</title></circle>
+              <circle class="pt" cx="67.3" cy="104.9" r="10"><title>11 weeks ago: $8.6K</title></circle>
+              <circle class="pt" cx="114.5" cy="112.7" r="10"><title>10 weeks ago: $8.1K</title></circle>
+              <circle class="pt" cx="161.8" cy="92.3" r="10"><title>9 weeks ago: $9.4K</title></circle>
+              <circle class="pt" cx="209.1" cy="98.6" r="10"><title>8 weeks ago: $9.0K</title></circle>
+              <circle class="pt" cx="256.4" cy="79.7" r="10"><title>7 weeks ago: $10.2K</title></circle>
+              <circle class="pt" cx="303.6" cy="86.0" r="10"><title>6 weeks ago: $9.8K</title></circle>
+              <circle class="pt" cx="350.9" cy="65.6" r="10"><title>5 weeks ago: $11.1K</title></circle>
+              <circle class="pt" cx="398.2" cy="73.4" r="10"><title>4 weeks ago: $10.6K</title></circle>
+              <circle class="pt" cx="445.5" cy="54.6" r="10"><title>3 weeks ago: $11.8K</title></circle>
+              <circle class="pt" cx="492.7" cy="45.1" r="10"><title>2 weeks ago: $12.4K</title></circle>
+              <circle class="pt" cx="540" cy="34.1" r="10"><title>This week: $13.1K</title></circle>
+              <circle class="end-dot" cx="540" cy="34.1" r="4"/>
+              <text class="end-label" x="495" y="26">$13.1K</text>
+            </svg>
+            <div class="trend-foot"><span>12 weeks ago</span><span>This week</span></div>
+          </div>
+          <div class="dash-card">
+            <h3>Revenue by category</h3>
+            <div class="sub">Last 30 days</div>
+            <div class="bar-list">
+              <div class="row"><div class="label"><svg class="icon"><use href="#i-electronics"/></svg><span>Electronics</span></div><div class="track"><div class="fill" style="width:100%"></div></div><div class="val">$18,420</div></div>
+              <div class="row"><div class="label"><svg class="icon"><use href="#i-home"/></svg><span>Home &amp; Kitchen</span></div><div class="track"><div class="fill" style="width:66%"></div></div><div class="val">$12,150</div></div>
+              <div class="row"><div class="label"><svg class="icon"><use href="#i-apparel"/></svg><span>Apparel</span></div><div class="track"><div class="fill" style="width:53%"></div></div><div class="val">$9,840</div></div>
+              <div class="row"><div class="label"><svg class="icon"><use href="#i-sports"/></svg><span>Sports &amp; Outdoors</span></div><div class="track"><div class="fill" style="width:35%"></div></div><div class="val">$6,380</div></div>
+              <div class="row"><div class="label"><svg class="icon"><use href="#i-beauty"/></svg><span>Beauty &amp; Care</span></div><div class="track"><div class="fill" style="width:26%"></div></div><div class="val">$4,760</div></div>
+              <div class="row"><div class="label"><svg class="icon"><use href="#i-grocery"/></svg><span>Grocery</span></div><div class="track"><div class="fill" style="width:21%"></div></div><div class="val">$3,920</div></div>
+              <div class="row"><div class="label"><svg class="icon"><use href="#i-office"/></svg><span>Office</span></div><div class="track"><div class="fill" style="width:16%"></div></div><div class="val">$2,890</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="dash-grid">
+          <div class="dash-card">
+            <div class="section-head"><h3>Vendor performance</h3><span class="result-count">Last 30 days</span></div>
+            <table class="data-table">
+              <thead><tr><th>Vendor</th><th style="text-align:right">Revenue</th><th style="text-align:right">Orders</th><th style="text-align:right">Growth</th><th style="text-align:right">Rating</th></tr></thead>
+              <tbody>
+                <tr><td><div class="vendor-cell"><span class="ic">AT</span>Aurora Tech</div><div class="mini-bar"><div class="f" style="width:100%"></div></div></td><td class="num">$38,240</td><td class="num">412</td><td class="num" style="color:var(--success)">▲ 11%</td><td class="num">4.8</td></tr>
+                <tr><td><div class="vendor-cell"><span class="ic">FG</span>Foundry Goods</div><div class="mini-bar"><div class="f" style="width:65%"></div></div></td><td class="num">$24,680</td><td class="num">203</td><td class="num" style="color:var(--success)">▲ 6%</td><td class="num">4.6</td></tr>
+                <tr><td><div class="vendor-cell"><span class="ic">CS</span>Cedar &amp; Salt</div><div class="mini-bar"><div class="f" style="width:50%"></div></div></td><td class="num">$19,050</td><td class="num">145</td><td class="num" style="color:var(--danger)">▼ 3%</td><td class="num">4.3</td></tr>
+                <tr><td><div class="vendor-cell"><span class="ic">TC</span>Terra &amp; Co.</div><div class="mini-bar"><div class="f" style="width:30%"></div></div></td><td class="num">$11,520</td><td class="num">96</td><td class="num" style="color:var(--success)">▲ 4%</td><td class="num">4.7</td></tr>
+                <tr><td><div class="vendor-cell"><span class="ic">NS</span>Northline Supply</div><div class="mini-bar"><div class="f" style="width:10%"></div></div></td><td class="num">$3,720</td><td class="num">31</td><td class="num" style="color:var(--danger)">▼ 18%</td><td class="num">3.9</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="dash-card">
+            <h3>Customer snapshot</h3>
+            <div class="sub">Last 30 days</div>
+            <div class="meter-row"><span>Repeat purchase rate</span><span class="v">68%</span></div>
+            <div class="meter"><div class="f" style="width:68%"></div></div>
+            <div class="mini-stat-row">
+              <div class="mini-stat"><div class="l">New customers</div><div class="n">412</div><div class="d up">▲ 8%</div></div>
+              <div class="mini-stat"><div class="l">Returning</div><div class="n">876</div><div class="d up">▲ 3%</div></div>
+              <div class="mini-stat"><div class="l">Avg. order value</div><div class="n">$67.40</div><div class="d up">▲ 2.1%</div></div>
+              <div class="mini-stat"><div class="l">Active customers</div><div class="n">3,214</div><div class="d up">▲ 4.8%</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="section-head"><h3>Trending this week</h3><span class="result-count">Ranked by week-over-week sales growth</span></div>
+        <table class="data-table" style="margin-bottom:1.75rem">
+          <thead><tr><th>Product</th><th>Category</th><th>Vendor</th><th>Trend</th><th style="text-align:right">Units sold (7d)</th><th style="text-align:right">Stock left</th></tr></thead>
+          <tbody>
+            <tr><td><div class="prod-cell"><span class="ic"><svg class="icon"><use href="#i-electronics"/></svg></span>Wireless Noise-Cancelling Headphones</div></td><td>Electronics</td><td>Aurora Tech</td><td><span class="status-chip ok">▲ 64%</span></td><td class="num">312</td><td class="num">42</td></tr>
+            <tr><td><div class="prod-cell"><span class="ic"><svg class="icon"><use href="#i-electronics"/></svg></span>Portable Power Bank, 20,000mAh</div></td><td>Electronics</td><td>Aurora Tech</td><td><span class="status-chip ok">▲ 51%</span></td><td class="num">268</td><td class="num">18</td></tr>
+            <tr><td><div class="prod-cell"><span class="ic"><svg class="icon"><use href="#i-home"/></svg></span>Cast Iron Skillet, 12 inch</div></td><td>Home &amp; Kitchen</td><td>Cedar &amp; Salt</td><td><span class="status-chip ok">▲ 38%</span></td><td class="num">190</td><td class="num">18</td></tr>
+            <tr><td><div class="prod-cell"><span class="ic"><svg class="icon"><use href="#i-electronics"/></svg></span>Mechanical Keyboard, Low-profile</div></td><td>Electronics</td><td>Aurora Tech</td><td><span class="status-chip ok">▲ 29%</span></td><td class="num">154</td><td class="num">9</td></tr>
+            <tr><td><div class="prod-cell"><span class="ic"><svg class="icon"><use href="#i-electronics"/></svg></span>USB-C Fast Charger, 65W</div></td><td>Electronics</td><td>Foundry Goods</td><td><span class="status-chip ok">▲ 22%</span></td><td class="num">133</td><td class="num">6</td></tr>
+          </tbody>
+        </table>
+
+        <div class="section-head"><h3>Keep in stock</h3><span class="result-count">High-velocity items at risk of stocking out</span></div>
+        <table class="data-table" style="margin-bottom:1.75rem">
+          <thead><tr><th>Product</th><th>Vendor</th><th style="text-align:right">Stock left</th><th style="text-align:right">Sell-through</th><th style="text-align:right">Days left</th><th>Urgency</th><th></th></tr></thead>
+          <tbody>
+            <tr><td>Ceramic Pour-Over Coffee Set</td><td>Terra &amp; Co.</td><td class="num">0</td><td class="num">2.4/day</td><td class="num">0</td><td><span class="urgency-chip critical">Critical</span></td><td><button class="btn btn-outline btn-sm">Reorder</button></td></tr>
+            <tr><td>USB-C Fast Charger, 65W</td><td>Foundry Goods</td><td class="num">6</td><td class="num">4.2/day</td><td class="num">1</td><td><span class="urgency-chip critical">Critical</span></td><td><button class="btn btn-outline btn-sm">Reorder</button></td></tr>
+            <tr><td>Mechanical Keyboard, Low-profile</td><td>Aurora Tech</td><td class="num">9</td><td class="num">3.1/day</td><td class="num">3</td><td><span class="urgency-chip critical">Critical</span></td><td><button class="btn btn-outline btn-sm">Reorder</button></td></tr>
+            <tr><td>Portable Power Bank, 20,000mAh</td><td>Aurora Tech</td><td class="num">18</td><td class="num">5.6/day</td><td class="num">3</td><td><span class="urgency-chip critical">Critical</span></td><td><button class="btn btn-outline btn-sm">Reorder</button></td></tr>
+            <tr><td>Wireless Noise-Cancelling Headphones</td><td>Aurora Tech</td><td class="num">42</td><td class="num">6.8/day</td><td class="num">6</td><td><span class="urgency-chip low">Low</span></td><td><button class="btn btn-outline btn-sm">Reorder</button></td></tr>
+          </tbody>
+        </table>
+
+        <div class="section-head"><h3>Discount to clear stock</h3><span class="result-count">Slow movers aging in inventory</span></div>
+        <table class="data-table">
+          <thead><tr><th>Product</th><th>Vendor</th><th style="text-align:right">Stock on hand</th><th style="text-align:right">Days in inventory</th><th style="text-align:right">Sell-through</th><th style="text-align:right">Suggested discount</th><th></th></tr></thead>
+          <tbody>
+            <tr><td>4K Webcam with Ring Light</td><td>Aurora Tech</td><td class="num">86</td><td class="num">118</td><td class="num">0.4/day</td><td class="num">20%</td><td><button class="btn btn-outline btn-sm">Apply discount</button></td></tr>
+            <tr><td>Wireless Charging Stand</td><td>Foundry Goods</td><td class="num">64</td><td class="num">96</td><td class="num">0.6/day</td><td class="num">15%</td><td><button class="btn btn-outline btn-sm">Apply discount</button></td></tr>
+            <tr><td>Portable Bluetooth Speaker</td><td>Aurora Tech</td><td class="num">58</td><td class="num">84</td><td class="num">0.7/day</td><td class="num">10%</td><td><button class="btn btn-outline btn-sm">Apply discount</button></td></tr>
+            <tr><td>Small-Batch Sea Salt Gift Set</td><td>Cedar &amp; Salt</td><td class="num">73</td><td class="num">108</td><td class="num">0.5/day</td><td class="num">20%</td><td><button class="btn btn-outline btn-sm">Apply discount</button></td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- ADMIN ORDERS -->
+      <section class="page" data-key="admin">
+        <div class="admin-head"><h1>All orders</h1><span class="result-count">A checkout can split across multiple vendors — switch views below</span></div>
+        <div class="table-toolbar">
+          <div style="display:flex;gap:.6rem;flex-wrap:wrap;align-items:center">
+            <input type="text" placeholder="Search order # or customer">
+            <div class="view-toggle">
+              <button class="on" data-orders-view="order">By order</button>
+              <button data-orders-view="vendor">By vendor</button>
+            </div>
+          </div>
+          <div class="row-actions"><button>Export</button><button>Filter</button></div>
+        </div>
+
+        <div data-orders-panel="order">
+          <table class="data-table">
+            <thead><tr><th>Order</th><th>Customer</th><th>Vendors</th><th>Status</th><th style="text-align:right">Order total</th><th></th></tr></thead>
+            <tbody>
+              <tr>
+                <td class="mono">#10482</td>
+                <td><div class="customer-cell"><span class="ic">JG</span>J. Gupta</div></td>
+                <td><div class="vendor-stack"><span class="ic" title="Terra &amp; Co.">TC</span><span class="ic" title="Aurora Tech">AT</span></div></td>
+                <td><span class="status-chip pending">Partially shipped</span></td>
+                <td class="num">$82.00</td>
+                <td><div class="row-actions"><button data-target="admin-order-detail">View</button></div></td>
+              </tr>
+              <tr>
+                <td class="mono">#10481</td>
+                <td><div class="customer-cell"><span class="ic">MC</span>M. Chen</div></td>
+                <td><div class="vendor-cell"><span class="ic">AT</span>Aurora Tech</div></td>
+                <td><span class="status-chip ok">Paid</span></td>
+                <td class="num">$58.50</td>
+                <td><div class="row-actions"><button data-target="admin-order-detail">View</button></div></td>
+              </tr>
+              <tr>
+                <td class="mono">#10480</td>
+                <td><div class="customer-cell"><span class="ic">AR</span>A. Rossi</div></td>
+                <td><div class="vendor-cell"><span class="ic">CS</span>Cedar &amp; Salt</div></td>
+                <td><span class="status-chip fail">Failed</span></td>
+                <td class="num">$212.00</td>
+                <td><div class="row-actions"><button data-target="admin-order-detail">View</button></div></td>
+              </tr>
+              <tr>
+                <td class="mono">#10479</td>
+                <td><div class="customer-cell"><span class="ic">SP</span>S. Patel</div></td>
+                <td><div class="vendor-cell"><span class="ic">FG</span>Foundry Goods</div></td>
+                <td><span class="status-chip ok">Paid</span></td>
+                <td class="num">$140.00</td>
+                <td><div class="row-actions"><button data-target="admin-order-detail">View</button></div></td>
+              </tr>
+              <tr>
+                <td class="mono">#10478</td>
+                <td><div class="customer-cell"><span class="ic">RN</span>R. Novak</div></td>
+                <td><div class="vendor-cell"><span class="ic">NS</span>Northline Supply</div></td>
+                <td><span class="status-chip pending">Pending</span></td>
+                <td class="num">$39.00</td>
+                <td><div class="row-actions"><button data-target="admin-order-detail">View</button></div></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div data-orders-panel="vendor" style="display:none">
+          <table class="data-table">
+            <thead><tr><th>Order</th><th>Vendor</th><th>Customer</th><th>Status</th><th style="text-align:right">Total</th><th></th></tr></thead>
+            <tbody>
+              <tr><td class="mono" rowspan="2">#10482</td><td><div class="vendor-cell"><span class="ic">TC</span>Terra &amp; Co.</div></td><td rowspan="2"><div class="customer-cell"><span class="ic">JG</span>J. Gupta</div></td><td><span class="status-chip pending">Pending</span></td><td class="num">$48.00</td><td><div class="row-actions"><button data-target="admin-order-detail">View</button></div></td></tr>
+              <tr><td><div class="vendor-cell"><span class="ic">AT</span>Aurora Tech</div></td><td><span class="status-chip ok">Paid</span></td><td class="num">$34.00</td><td><div class="row-actions"><button data-target="admin-order-detail">View</button></div></td></tr>
+              <tr><td class="mono">#10481</td><td><div class="vendor-cell"><span class="ic">AT</span>Aurora Tech</div></td><td><div class="customer-cell"><span class="ic">MC</span>M. Chen</div></td><td><span class="status-chip ok">Paid</span></td><td class="num">$58.50</td><td><div class="row-actions"><button data-target="admin-order-detail">View</button></div></td></tr>
+              <tr><td class="mono">#10480</td><td><div class="vendor-cell"><span class="ic">CS</span>Cedar &amp; Salt</div></td><td><div class="customer-cell"><span class="ic">AR</span>A. Rossi</div></td><td><span class="status-chip fail">Failed</span></td><td class="num">$212.00</td><td><div class="row-actions"><button data-target="admin-order-detail">View</button></div></td></tr>
+              <tr><td class="mono">#10479</td><td><div class="vendor-cell"><span class="ic">FG</span>Foundry Goods</div></td><td><div class="customer-cell"><span class="ic">SP</span>S. Patel</div></td><td><span class="status-chip ok">Paid</span></td><td class="num">$140.00</td><td><div class="row-actions"><button data-target="admin-order-detail">View</button></div></td></tr>
+              <tr><td class="mono">#10478</td><td><div class="vendor-cell"><span class="ic">NS</span>Northline Supply</div></td><td><div class="customer-cell"><span class="ic">RN</span>R. Novak</div></td><td><span class="status-chip pending">Pending</span></td><td class="num">$39.00</td><td><div class="row-actions"><button data-target="admin-order-detail">View</button></div></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ADMIN ORDER DETAIL -->
+      <section class="page" data-key="admin-order-detail">
+        <div class="crumb"><a data-target="admin" href="#">All orders</a> / <b>#10482</b></div>
+        <div class="admin-head">
+          <div>
+            <h1>Order #10482</h1>
+            <div class="result-count">Placed Aug 22, 2026 &middot; <span class="status-chip pending">Partially shipped</span></div>
+          </div>
+          <div class="result-count">Order total <span class="mono" style="font-size:1.15rem;font-weight:700;color:var(--text)">$82.00</span></div>
+        </div>
+
+        <div class="dash-grid" style="grid-template-columns:1fr 1fr">
+          <div class="dash-card">
+            <h3>Customer</h3>
+            <div class="customer-cell" style="margin:.7rem 0 1rem;font-size:.95rem"><span class="ic">JG</span>J. Gupta</div>
+            <table class="spec-table">
+              <tr><td>Email</td><td>jitendra.g@curiticshealth.com</td></tr>
+              <tr><td>Shipping address</td><td>1234 Country Rd, Springfield, 94016</td></tr>
+              <tr><td>Payment method</td><td>Credit card ending 4242</td></tr>
+            </table>
+          </div>
+          <div class="dash-card">
+            <h3>Order summary</h3>
+            <div class="summary-row"><span>Terra &amp; Co. subtotal</span><span class="v">$48.00</span></div>
+            <div class="summary-row"><span>Aurora Tech subtotal</span><span class="v">$34.00</span></div>
+            <div class="summary-row total"><span>Order total</span><span class="v">$82.00</span></div>
+          </div>
+        </div>
+
+        <div class="section-head"><h3>By vendor</h3><span class="result-count">2 vendors fulfilling this order</span></div>
+
+        <div class="dash-card" style="margin-bottom:1.25rem">
+          <div class="section-head">
+            <div class="vendor-cell" style="font-size:.95rem"><span class="ic">TC</span>Terra &amp; Co.</div>
+            <span class="status-chip pending">Pending</span>
+          </div>
+          <table class="data-table">
+            <thead><tr><th>Product</th><th style="text-align:right">Qty</th><th style="text-align:right">Unit price</th><th style="text-align:right">Total</th></tr></thead>
+            <tbody>
+              <tr><td><div class="prod-cell"><span class="ic"><svg class="icon"><use href="#i-home"/></svg></span>Ceramic Pour-Over Coffee Set</div></td><td class="num">1</td><td class="num">$48.00</td><td class="num">$48.00</td></tr>
+            </tbody>
+          </table>
+          <div class="result-count" style="margin-top:.8rem">Awaiting payment confirmation from customer.</div>
+        </div>
+
+        <div class="dash-card">
+          <div class="section-head">
+            <div class="vendor-cell" style="font-size:.95rem"><span class="ic">AT</span>Aurora Tech</div>
+            <span class="status-chip ok">Paid</span>
+          </div>
+          <table class="data-table">
+            <thead><tr><th>Product</th><th style="text-align:right">Qty</th><th style="text-align:right">Unit price</th><th style="text-align:right">Total</th></tr></thead>
+            <tbody>
+              <tr><td><div class="prod-cell"><span class="ic"><svg class="icon"><use href="#i-electronics"/></svg></span>Portable Power Bank, 20,000mAh</div></td><td class="num">1</td><td class="num">$34.00</td><td class="num">$34.00</td></tr>
+            </tbody>
+          </table>
+          <div class="result-count" style="margin-top:.8rem">Payment captured — preparing for shipment.</div>
+        </div>
+      </section>
+
+      <!-- ADMIN PRODUCTS -->
+      <section class="page" data-key="admin-products">
+        <div class="admin-head"><h1>Products</h1><button class="btn btn-primary btn-sm" data-target="admin-product-edit" data-form-mode="add">+ Add product</button></div>
+        <div class="table-toolbar">
+          <div style="display:flex;gap:.6rem;flex-wrap:wrap">
+            <input type="text" placeholder="Search products">
+            <select class="sort-select">
+              <option>All vendors</option>
+              <option>Aurora Tech</option>
+              <option>Terra &amp; Co.</option>
+              <option>Cedar &amp; Salt</option>
+              <option>Foundry Goods</option>
+            </select>
+            <select class="sort-select">
+              <option>All categories</option>
+              <option>Electronics</option>
+              <option>Home &amp; Kitchen</option>
+              <option>Office</option>
+            </select>
+            <select class="sort-select">
+              <option>All statuses</option>
+              <option>Active</option>
+              <option>Low stock</option>
+              <option>Out of stock</option>
+              <option>Draft</option>
+            </select>
+          </div>
+          <div class="row-actions"><button>Export</button></div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Product</th><th>Vendor</th><th>Category</th><th style="text-align:right">Stock</th><th>Status</th><th style="text-align:right">Price</th><th style="text-align:right">Total value</th><th></th></tr></thead>
+          <tbody>
+            <tr><td><div class="prod-cell"><span class="ic"><svg class="icon"><use href="#i-electronics"/></svg></span>Wireless Noise-Cancelling Headphones</div></td><td><div class="vendor-cell"><span class="ic">AT</span>Aurora Tech</div></td><td><svg class="icon" style="margin-right:.5rem"><use href="#i-electronics"/></svg>Electronics</td><td class="num">42</td><td><span class="status-chip ok">Active</span></td><td class="num">$129.00</td><td class="num">$5,418.00</td><td><div class="row-actions"><button data-target="admin-product-edit" data-form-mode="edit">Edit</button></div></td></tr>
+            <tr><td><div class="prod-cell"><span class="ic"><svg class="icon"><use href="#i-home"/></svg></span>Ceramic Pour-Over Coffee Set</div></td><td><div class="vendor-cell"><span class="ic">TC</span>Terra &amp; Co.</div></td><td><svg class="icon" style="margin-right:.5rem"><use href="#i-home"/></svg>Home &amp; Kitchen</td><td class="num">0</td><td><span class="status-chip fail">Out of stock</span></td><td class="num">$48.00</td><td class="num">$0.00</td><td><div class="row-actions"><button data-target="admin-product-edit" data-form-mode="edit">Edit</button></div></td></tr>
+            <tr><td><div class="prod-cell"><span class="ic"><svg class="icon"><use href="#i-electronics"/></svg></span>USB-C Fast Charger, 65W</div></td><td><div class="vendor-cell"><span class="ic">FG</span>Foundry Goods</div></td><td><svg class="icon" style="margin-right:.5rem"><use href="#i-electronics"/></svg>Electronics</td><td class="num">6</td><td><span class="status-chip pending">Low stock</span></td><td class="num">$24.00</td><td class="num">$144.00</td><td><div class="row-actions"><button data-target="admin-product-edit" data-form-mode="edit">Edit</button></div></td></tr>
+            <tr><td><div class="prod-cell"><span class="ic"><svg class="icon"><use href="#i-home"/></svg></span>Cast Iron Skillet, 12 inch</div></td><td><div class="vendor-cell"><span class="ic">CS</span>Cedar &amp; Salt</div></td><td><svg class="icon" style="margin-right:.5rem"><use href="#i-home"/></svg>Home &amp; Kitchen</td><td class="num">18</td><td><span class="status-chip ok">Active</span></td><td class="num">$64.00</td><td class="num">$1,152.00</td><td><div class="row-actions"><button data-target="admin-product-edit" data-form-mode="edit">Edit</button></div></td></tr>
+            <tr><td><div class="prod-cell"><span class="ic"><svg class="icon"><use href="#i-office"/></svg></span>Minimalist Walnut Desk Lamp</div></td><td><div class="vendor-cell"><span class="ic">FG</span>Foundry Goods</div></td><td><svg class="icon" style="margin-right:.5rem"><use href="#i-office"/></svg>Office</td><td class="num">—</td><td><span class="status-chip pending">Draft</span></td><td class="num">$56.00</td><td class="num">—</td><td><div class="row-actions"><button data-target="admin-product-edit" data-form-mode="edit">Edit</button></div></td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- ADMIN PRODUCT EDIT / ADD -->
+      <section class="page" data-key="admin-product-edit" data-mode="edit">
+        <div class="crumb"><a data-target="admin-products" href="#">Products</a> / <b><span data-mode-text="edit">Edit product</span><span data-mode-text="add">Add product</span></b></div>
+        <div class="admin-head">
+          <h1><span data-mode-text="edit">Edit product</span><span data-mode-text="add">Add product</span></h1>
+          <div class="row-actions">
+            <button class="btn btn-outline btn-sm" data-target="admin-products">Cancel</button>
+            <button class="btn btn-primary btn-sm" data-target="admin-products"><span data-mode-text="edit">Save changes</span><span data-mode-text="add">Create product</span></button>
+          </div>
+        </div>
+        <div class="checkout-grid">
+          <div>
+            <div class="form-card">
+              <h3>Image</h3>
+              <div class="upload-drop" data-role="upload-drop">
+                <label>
+                  <input type="file" accept="image/*" data-role="upload-input" style="display:none">
+                  <div class="upload-preview" data-role="upload-preview"><svg class="icon"><use href="#i-electronics"/></svg></div>
+                  <div class="upload-text"><strong>Click to upload</strong> or drag and drop<br><span class="result-count">PNG or JPG, up to 5MB</span></div>
+                </label>
+                <button type="button" class="upload-remove" data-role="upload-remove">Remove</button>
+              </div>
+            </div>
+            <div class="form-card">
+              <h3>Details</h3>
+              <div class="field" style="margin-bottom:1rem"><label>Product name</label><input data-role="name" data-default="Wireless Noise-Cancelling Headphones" value="Wireless Noise-Cancelling Headphones" placeholder="e.g. Wireless Noise-Cancelling Headphones"></div>
+              <div class="form-row">
+                <div class="field"><label>Vendor</label><select data-role="vendor" data-default="Aurora Tech"><option>Aurora Tech</option><option>Terra &amp; Co.</option><option>Cedar &amp; Salt</option><option>Foundry Goods</option><option>Northline Supply</option></select></div>
+                <div class="field"><label>Category</label><select data-default="Electronics"><option>Electronics</option><option>Apparel</option><option>Home &amp; Kitchen</option><option>Beauty &amp; Care</option><option>Sports &amp; Outdoors</option><option>Grocery</option><option>Office</option></select></div>
+              </div>
+              <div class="field" style="margin-bottom:0"><label>Description</label><textarea rows="4" data-default="Over-ear headphones with adaptive noise cancellation, 30-hour battery life, and a fold-flat design. Includes a hard-shell carry case and USB-C fast charging cable." placeholder="Describe the product…">Over-ear headphones with adaptive noise cancellation, 30-hour battery life, and a fold-flat design. Includes a hard-shell carry case and USB-C fast charging cable.</textarea></div>
+            </div>
+            <div class="form-card" style="margin-bottom:0">
+              <h3>Pricing &amp; inventory</h3>
+              <div class="form-row">
+                <div class="field"><label>Price</label><input data-role="price" data-default="129.00" value="129.00" placeholder="0.00"></div>
+                <div class="field"><label>Compare-at price</label><input data-role="compare" data-default="159.00" value="159.00" placeholder="0.00"></div>
+              </div>
+              <div class="form-row" style="margin-bottom:0">
+                <div class="field"><label>Stock quantity</label><input data-role="stock" data-default="42" value="42" placeholder="0"></div>
+                <div class="field"><label>Status</label><select data-default="Active"><option>Active</option><option>Low stock</option><option>Out of stock</option><option>Draft</option></select></div>
+              </div>
+            </div>
+          </div>
+          <div class="summary-card">
+            <h3>Preview</h3>
+            <div class="p-card">
+              <div class="thumb" data-role="preview-thumb"><svg viewBox="0 0 24 24"><use href="#i-electronics"/></svg><span class="stock" data-role="preview-stock">In stock</span></div>
+              <div class="body">
+                <div class="vendor" data-role="preview-vendor">Aurora Tech</div>
+                <div class="name" data-role="preview-name">Wireless Noise-Cancelling Headphones</div>
+                <div class="price-row"><span class="price" data-role="preview-price">$129.00</span><span class="was" data-role="preview-was">$159.00</span></div>
+              </div>
+            </div>
+            <div class="result-count" style="margin-top:1rem"><span data-mode-text="edit">This is how the product will appear in the catalog.</span><span data-mode-text="add">This is how the new product will appear in the catalog once created.</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ADMIN CATEGORIES -->
+      <section class="page" data-key="admin-categories">
+        <div class="admin-head"><h1>Categories</h1><button class="btn btn-primary btn-sm" data-target="admin-category-edit" data-form-mode="add">+ Add category</button></div>
+        <div class="table-toolbar">
+          <input type="text" placeholder="Search categories">
+          <div class="row-actions"><button>Export</button></div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Category</th><th>Parent</th><th style="text-align:right">Products</th><th style="text-align:right">Total value</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            <tr><td><svg class="icon" style="margin-right:.5rem"><use href="#i-electronics"/></svg>Electronics</td><td>—</td><td class="num">128</td><td class="num">$18,420.00</td><td><span class="status-chip ok">Active</span></td><td><div class="row-actions"><button data-target="admin-category-edit" data-form-mode="edit">Edit</button></div></td></tr>
+            <tr><td><svg class="icon" style="margin-right:.5rem"><use href="#i-apparel"/></svg>Apparel</td><td>—</td><td class="num">96</td><td class="num">$9,840.00</td><td><span class="status-chip ok">Active</span></td><td><div class="row-actions"><button data-target="admin-category-edit" data-form-mode="edit">Edit</button></div></td></tr>
+            <tr><td><svg class="icon" style="margin-right:.5rem"><use href="#i-home"/></svg>Home &amp; Kitchen</td><td>—</td><td class="num">74</td><td class="num">$12,150.00</td><td><span class="status-chip ok">Active</span></td><td><div class="row-actions"><button data-target="admin-category-edit" data-form-mode="edit">Edit</button></div></td></tr>
+            <tr><td><svg class="icon" style="margin-right:.5rem"><use href="#i-beauty"/></svg>Beauty &amp; Care</td><td>—</td><td class="num">51</td><td class="num">$4,760.00</td><td><span class="status-chip ok">Active</span></td><td><div class="row-actions"><button data-target="admin-category-edit" data-form-mode="edit">Edit</button></div></td></tr>
+            <tr><td><svg class="icon" style="margin-right:.5rem"><use href="#i-sports"/></svg>Sports &amp; Outdoors</td><td>—</td><td class="num">38</td><td class="num">$6,380.00</td><td><span class="status-chip pending">Hidden</span></td><td><div class="row-actions"><button data-target="admin-category-edit" data-form-mode="edit">Edit</button></div></td></tr>
+            <tr><td><svg class="icon" style="margin-right:.5rem"><use href="#i-grocery"/></svg>Grocery</td><td>—</td><td class="num">64</td><td class="num">$3,920.00</td><td><span class="status-chip ok">Active</span></td><td><div class="row-actions"><button data-target="admin-category-edit" data-form-mode="edit">Edit</button></div></td></tr>
+            <tr><td><svg class="icon" style="margin-right:.5rem"><use href="#i-office"/></svg>Office</td><td>—</td><td class="num">29</td><td class="num">$2,890.00</td><td><span class="status-chip ok">Active</span></td><td><div class="row-actions"><button data-target="admin-category-edit" data-form-mode="edit">Edit</button></div></td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- ADMIN CATEGORY EDIT -->
+      <section class="page" data-key="admin-category-edit" data-mode="edit">
+        <div class="crumb"><a data-target="admin-categories" href="#">Categories</a> / <b><span data-mode-text="edit">Edit category</span><span data-mode-text="add">Add category</span></b></div>
+        <div class="admin-head">
+          <h1><span data-mode-text="edit">Edit category</span><span data-mode-text="add">Add category</span></h1>
+          <div class="row-actions">
+            <button class="btn btn-outline btn-sm" data-target="admin-categories">Cancel</button>
+            <button class="btn btn-primary btn-sm" data-target="admin-categories"><span data-mode-text="edit">Save changes</span><span data-mode-text="add">Create category</span></button>
+          </div>
+        </div>
+        <div class="checkout-grid">
+          <div>
+            <div class="form-card" style="margin-bottom:0">
+              <h3>Details</h3>
+              <div class="field" style="margin-bottom:1rem"><label>Category name</label><input data-role="name" data-default="Electronics" value="Electronics" placeholder="e.g. Electronics"></div>
+              <div class="form-row" style="margin-bottom:1rem">
+                <div class="field"><label>Parent category</label><select data-default="— None (top level) —"><option>— None (top level) —</option><option>Apparel</option><option>Home &amp; Kitchen</option><option>Office</option></select></div>
+                <div class="field"><label>Status</label><select data-default="Active"><option>Active</option><option>Hidden</option></select></div>
+              </div>
+              <div class="field" style="margin-bottom:0">
+                <label>Icon</label>
+                <div class="gallery-thumbs" data-default-icon="i-electronics" style="margin-top:.4rem">
+                  <div class="t on" data-icon="i-electronics"><svg class="icon"><use href="#i-electronics"/></svg></div>
+                  <div class="t" data-icon="i-apparel"><svg class="icon"><use href="#i-apparel"/></svg></div>
+                  <div class="t" data-icon="i-home"><svg class="icon"><use href="#i-home"/></svg></div>
+                  <div class="t" data-icon="i-beauty"><svg class="icon"><use href="#i-beauty"/></svg></div>
+                  <div class="t" data-icon="i-sports"><svg class="icon"><use href="#i-sports"/></svg></div>
+                  <div class="t" data-icon="i-grocery"><svg class="icon"><use href="#i-grocery"/></svg></div>
+                  <div class="t" data-icon="i-office"><svg class="icon"><use href="#i-office"/></svg></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="summary-card">
+            <h3>Preview</h3>
+            <div class="cat-sidebar" style="border:none;padding:0">
+              <ul>
+                <li><a class="active" href="#"><svg class="icon"><use href="#i-electronics" data-role="preview-icon"/></svg><span data-role="preview-name">Electronics</span></a></li>
+              </ul>
+            </div>
+            <div class="result-count" style="margin-top:1rem"><span data-mode-text="edit">This is how the category will appear in the storefront sidebar and admin table.</span><span data-mode-text="add">This is how the new category will appear in the storefront sidebar and admin table once created.</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ADMIN VENDORS -->
+      <section class="page" data-key="admin-vendors">
+        <div class="admin-head"><h1>Vendors</h1><button class="btn btn-primary btn-sm" id="invite-vendor-btn">+ Invite vendor</button></div>
+        <div class="table-toolbar">
+          <div style="display:flex;gap:.6rem;flex-wrap:wrap">
+            <input type="text" placeholder="Search vendors">
+            <select class="sort-select">
+              <option>All statuses</option>
+              <option>Active</option>
+              <option>Pending review</option>
+              <option>Suspended</option>
+            </select>
+          </div>
+          <div class="row-actions"><button>Export</button></div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Vendor</th><th>Contact</th><th style="text-align:right">Products</th><th style="text-align:right">Orders</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            <tr><td><div class="vendor-cell"><span class="ic">AT</span>Aurora Tech</div></td><td>hello@auroratech.com</td><td class="num">34</td><td class="num">412</td><td><span class="status-chip ok">Active</span></td><td><div class="row-actions"><button data-target="admin-vendor-detail">View</button><button data-confirm="suspend" data-subject="Aurora Tech">Suspend</button></div></td></tr>
+            <tr><td><div class="vendor-cell"><span class="ic">TC</span>Terra &amp; Co.</div></td><td>contact@terraco.com</td><td class="num">18</td><td class="num">96</td><td><span class="status-chip ok">Active</span></td><td><div class="row-actions"><button data-target="admin-vendor-detail">View</button><button data-confirm="suspend" data-subject="Terra &amp; Co.">Suspend</button></div></td></tr>
+            <tr><td><div class="vendor-cell"><span class="ic">CS</span>Cedar &amp; Salt</div></td><td>orders@cedarsalt.com</td><td class="num">22</td><td class="num">145</td><td><span class="status-chip pending">Pending review</span></td><td><div class="row-actions"><button data-target="admin-vendor-detail">View</button><button data-confirm="approve" data-subject="Cedar &amp; Salt">Approve</button></div></td></tr>
+            <tr><td><div class="vendor-cell"><span class="ic">FG</span>Foundry Goods</div></td><td>team@foundrygoods.com</td><td class="num">27</td><td class="num">203</td><td><span class="status-chip ok">Active</span></td><td><div class="row-actions"><button data-target="admin-vendor-detail">View</button><button data-confirm="suspend" data-subject="Foundry Goods">Suspend</button></div></td></tr>
+            <tr><td><div class="vendor-cell"><span class="ic">NS</span>Northline Supply</div></td><td>support@northline.com</td><td class="num">9</td><td class="num">31</td><td><span class="status-chip fail">Suspended</span></td><td><div class="row-actions"><button data-target="admin-vendor-detail">View</button><button data-confirm="reinstate" data-subject="Northline Supply">Reinstate</button></div></td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- ADMIN VENDOR DETAIL -->
+      <section class="page" data-key="admin-vendor-detail">
+        <div class="crumb"><a data-target="admin-vendors" href="#">Vendors</a> / <b>Aurora Tech</b></div>
+        <div class="admin-head">
+          <div style="display:flex;align-items:center;gap:1rem">
+            <span class="ic" style="width:46px;height:46px;border-radius:50%;background:var(--accent-tint);color:var(--accent-strong);display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:700;font-family:'IBM Plex Mono'">AT</span>
+            <div>
+              <h1>Aurora Tech</h1>
+              <div class="result-count">hello@auroratech.com &middot; Joined Jan 2025</div>
+            </div>
+          </div>
+          <div class="row-actions">
+            <button class="btn btn-outline btn-sm" data-target="reset-password" data-rp-email="hello@auroratech.com" data-rp-return="admin-vendor-detail">Reset password</button>
+            <button class="btn btn-danger-outline btn-sm" data-confirm="suspend" data-subject="Aurora Tech">Suspend vendor</button>
+            <button class="btn btn-primary btn-sm">Message vendor</button>
+          </div>
+        </div>
+        <table class="spec-table" style="max-width:460px;margin-bottom:1.6rem">
+          <tr><td>Registered address</td><td>482 Market Street, Suite 210, San Francisco, CA 94105, USA</td></tr>
+        </table>
+        <div class="stat-row">
+          <div class="stat-card" style="--stripe:var(--primary)"><div class="l">Products</div><div class="n">34</div></div>
+          <div class="stat-card" style="--stripe:var(--accent)"><div class="l">Orders</div><div class="n">412</div></div>
+          <div class="stat-card" style="--stripe:var(--success)"><div class="l">Revenue</div><div class="n">$38,240</div><div class="d up">▲ 11% vs last period</div></div>
+          <div class="stat-card" style="--stripe:var(--warning)"><div class="l">Rating</div><div class="n">4.8</div><div class="d up">★★★★★</div></div>
+        </div>
+        <h3 style="margin-bottom:1rem">Recent orders</h3>
+        <table class="data-table">
+          <thead><tr><th>Order</th><th>Customer</th><th>Status</th><th style="text-align:right">Total</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">#10481</td><td><div class="customer-cell"><span class="ic">MC</span>M. Chen</div></td><td><span class="status-chip ok">Paid</span></td><td class="num">$58.50</td></tr>
+            <tr><td class="mono">#10474</td><td><div class="customer-cell"><span class="ic">JG</span>J. Gupta</div></td><td><span class="status-chip ok">Shipped</span></td><td class="num">$129.00</td></tr>
+            <tr><td class="mono">#10467</td><td><div class="customer-cell"><span class="ic">SP</span>S. Patel</div></td><td><span class="status-chip pending">Pending</span></td><td class="num">$89.00</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- ADMIN CUSTOMERS -->
+      <section class="page" data-key="admin-customers">
+        <div class="admin-head"><h1>Customers</h1></div>
+        <div class="table-toolbar">
+          <input type="text" placeholder="Search customers">
+          <div class="row-actions"><button>Export</button></div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Customer</th><th>Email</th><th style="text-align:right">Orders</th><th style="text-align:right">Total spent</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            <tr><td><div class="customer-cell"><span class="ic">JG</span>J. Gupta</div></td><td>jitendra.g@curiticshealth.com</td><td class="num">6</td><td class="num">$412.00</td><td><span class="status-chip ok">Active</span></td><td><div class="row-actions"><button data-target="admin-customer-detail">View</button><button data-confirm="block" data-subject="J. Gupta">Block</button></div></td></tr>
+            <tr><td><div class="customer-cell"><span class="ic">MC</span>M. Chen</div></td><td>m.chen@example.com</td><td class="num">14</td><td class="num">$1,208.00</td><td><span class="status-chip ok">Active</span></td><td><div class="row-actions"><button data-target="admin-customer-detail">View</button><button data-confirm="block" data-subject="M. Chen">Block</button></div></td></tr>
+            <tr><td><div class="customer-cell"><span class="ic">AR</span>A. Rossi</div></td><td>a.rossi@example.com</td><td class="num">2</td><td class="num">$68.00</td><td><span class="status-chip ok">Active</span></td><td><div class="row-actions"><button data-target="admin-customer-detail">View</button><button data-confirm="block" data-subject="A. Rossi">Block</button></div></td></tr>
+            <tr><td><div class="customer-cell"><span class="ic">SP</span>S. Patel</div></td><td>s.patel@example.com</td><td class="num">9</td><td class="num">$740.00</td><td><span class="status-chip ok">Active</span></td><td><div class="row-actions"><button data-target="admin-customer-detail">View</button><button data-confirm="block" data-subject="S. Patel">Block</button></div></td></tr>
+            <tr><td><div class="customer-cell"><span class="ic">RN</span>R. Novak</div></td><td>r.novak@example.com</td><td class="num">1</td><td class="num">$39.00</td><td><span class="status-chip fail">Blocked</span></td><td><div class="row-actions"><button data-target="admin-customer-detail">View</button><button data-confirm="unblock" data-subject="R. Novak">Unblock</button></div></td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- ADMIN CUSTOMER DETAIL -->
+      <section class="page" data-key="admin-customer-detail">
+        <div class="crumb"><a data-target="admin-customers" href="#">Customers</a> / <b>M. Chen</b></div>
+        <div class="admin-head">
+          <div style="display:flex;align-items:center;gap:1rem">
+            <span class="ic" style="width:46px;height:46px;border-radius:50%;background:var(--primary-tint);color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:700;font-family:'IBM Plex Mono'">MC</span>
+            <div>
+              <h1>M. Chen</h1>
+              <div class="result-count">m.chen@example.com &middot; Customer since Mar 2024 &middot; <span class="status-chip ok">Active</span></div>
+            </div>
+          </div>
+          <div class="row-actions">
+            <button class="btn btn-outline btn-sm" data-target="reset-password" data-rp-email="m.chen@example.com" data-rp-return="admin-customer-detail">Reset password</button>
+            <button class="btn btn-danger-outline btn-sm" data-confirm="block" data-subject="M. Chen">Block customer</button>
+          </div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-card" style="--stripe:var(--primary)"><div class="l">Orders</div><div class="n">14</div></div>
+          <div class="stat-card" style="--stripe:var(--accent)"><div class="l">Total spent</div><div class="n">$1,208.00</div></div>
+          <div class="stat-card" style="--stripe:var(--success)"><div class="l">Avg. order</div><div class="n">$86.29</div></div>
+          <div class="stat-card" style="--stripe:var(--warning)"><div class="l">Last order</div><div class="n" style="font-size:1.05rem">3 days ago</div></div>
+        </div>
+        <h3 style="margin-bottom:1rem">Recent orders</h3>
+        <table class="data-table">
+          <thead><tr><th>Order</th><th>Vendor</th><th>Status</th><th style="text-align:right">Total</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">#10481</td><td><div class="vendor-cell"><span class="ic">AT</span>Aurora Tech</div></td><td><span class="status-chip ok">Paid</span></td><td class="num">$58.50</td></tr>
+            <tr><td class="mono">#10465</td><td><div class="vendor-cell"><span class="ic">TC</span>Terra &amp; Co.</div></td><td><span class="status-chip ok">Shipped</span></td><td class="num">$96.00</td></tr>
+            <tr><td class="mono">#10452</td><td><div class="vendor-cell"><span class="ic">FG</span>Foundry Goods</div></td><td><span class="status-chip pending">Pending</span></td><td class="num">$32.00</td></tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+  </div>
+</div>
+
+<div class="modal-overlay" id="confirm-modal">
+  <div class="modal-card">
+    <h3 id="confirm-title">Approve vendor?</h3>
+    <p id="confirm-body">This vendor will be marked Active and can start selling on ShopFlow immediately.</p>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" id="confirm-cancel">Cancel</button>
+      <button class="btn btn-accent btn-sm" id="confirm-ok">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="invite-modal">
+  <div class="modal-card wide">
+    <h3>Invite a vendor</h3>
+    <p>They'll get an email with a signup link. Once they complete registration, they'll appear here as <b>Pending review</b> until you approve them.</p>
+    <div class="field" style="margin-bottom:1rem"><label>Business name</label><input id="invite-name" placeholder="e.g. Cedar &amp; Salt"></div>
+    <div class="field" style="margin-bottom:1rem"><label>Contact email</label><input id="invite-email" type="email" placeholder="owner@business.com"></div>
+    <div class="field" style="margin-bottom:1.4rem"><label>Starting commission rate <span style="font-weight:400;color:var(--text-faint)">(optional — platform default applies if left blank)</span></label><input id="invite-rate" placeholder="e.g. 10%"></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline btn-sm" id="invite-cancel">Cancel</button>
+      <button class="btn btn-accent btn-sm" id="invite-send">Send invite</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function setPage(target){
+    document.body.dataset.page = target;
+    document.querySelectorAll('.proto-strip [data-target]').forEach(function(b){ b.classList.toggle('on', b.dataset.target === target); });
+    document.querySelectorAll('.admin-sidebar [data-target]').forEach(function(a){ a.classList.toggle('active', a.dataset.target === target); });
+    window.scrollTo({top:0});
+  }
+  document.addEventListener('click', function(e){
+    var navEl = e.target.closest('[data-target]');
+    if(navEl){
+      if (navEl.tagName === 'A') e.preventDefault();
+      setPage(navEl.dataset.target);
+      if(navEl.dataset.formMode){
+        var sec = document.querySelector('.page[data-key="' + navEl.dataset.target + '"]');
+        if(sec){
+          if(sec.dataset.key === 'admin-category-edit') setCategoryMode(sec, navEl.dataset.formMode);
+          else setProductMode(sec, navEl.dataset.formMode);
+        }
+      }
+      if(navEl.dataset.rpEmail){
+        var emailEl = document.querySelector('[data-key="reset-password"] [data-role="rp-email"]');
+        if(emailEl) emailEl.textContent = navEl.dataset.rpEmail;
+        var submitBtn = document.getElementById('reset-password-submit');
+        if(submitBtn) submitBtn.dataset.target = navEl.dataset.rpReturn || 'auth';
+      }
+    }
+  });
+  document.addEventListener('click', function(e){
+    var viewBtn = e.target.closest('[data-orders-view]');
+    if(!viewBtn) return;
+    var view = viewBtn.dataset.ordersView;
+    document.querySelectorAll('.view-toggle button').forEach(function(b){ b.classList.toggle('on', b === viewBtn); });
+    document.querySelectorAll('[data-orders-panel]').forEach(function(p){ p.style.display = (p.dataset.ordersPanel === view) ? '' : 'none'; });
+  });
+
+  function setProductMode(section, mode){
+    section.dataset.mode = mode;
+    section.querySelectorAll('[data-default]').forEach(function(el){
+      el.value = (mode === 'add') ? '' : el.dataset.default;
+    });
+    if(mode === 'add' && section._clearUploadedImage) section._clearUploadedImage();
+    syncProductPreview(section);
+  }
+  function bindImageUpload(section){
+    var input = section.querySelector('[data-role="upload-input"]');
+    var drop = section.querySelector('[data-role="upload-drop"]');
+    if(!input || !drop) return;
+    var uploadPreview = section.querySelector('[data-role="upload-preview"]');
+    var uploadIcon = uploadPreview ? uploadPreview.querySelector('svg') : null;
+    var mainThumb = section.querySelector('[data-role="preview-thumb"]');
+    var mainIcon = mainThumb ? mainThumb.querySelector('svg') : null;
+    var removeBtn = section.querySelector('[data-role="upload-remove"]');
+    function applyImage(url){
+      if(uploadPreview) uploadPreview.style.backgroundImage = 'url(' + url + ')';
+      if(uploadIcon) uploadIcon.style.display = 'none';
+      if(mainThumb) mainThumb.style.backgroundImage = 'url(' + url + ')';
+      if(mainIcon) mainIcon.style.display = 'none';
+      drop.classList.add('has-image');
+    }
+    function clearImage(){
+      if(uploadPreview) uploadPreview.style.backgroundImage = '';
+      if(uploadIcon) uploadIcon.style.display = '';
+      if(mainThumb) mainThumb.style.backgroundImage = '';
+      if(mainIcon) mainIcon.style.display = '';
+      drop.classList.remove('has-image');
+      input.value = '';
+    }
+    input.addEventListener('change', function(){
+      var file = input.files && input.files[0];
+      if(file) applyImage(URL.createObjectURL(file));
+    });
+    drop.addEventListener('dragover', function(e){ e.preventDefault(); drop.classList.add('drag'); });
+    drop.addEventListener('dragleave', function(){ drop.classList.remove('drag'); });
+    drop.addEventListener('drop', function(e){
+      e.preventDefault();
+      drop.classList.remove('drag');
+      var file = e.dataTransfer.files && e.dataTransfer.files[0];
+      if(file){ input.files = e.dataTransfer.files; applyImage(URL.createObjectURL(file)); }
+    });
+    if(removeBtn){
+      removeBtn.addEventListener('click', function(e){ e.preventDefault(); clearImage(); });
+    }
+    section._clearUploadedImage = clearImage;
+  }
+  document.querySelectorAll('[data-key="admin-product-edit"], [data-key="vendor-product-edit"], [data-key="vendor-profile"]').forEach(bindImageUpload);
+  function syncProductPreview(section){
+    var nameEl = section.querySelector('[data-role="name"]');
+    var vendorEl = section.querySelector('[data-role="vendor"]');
+    var priceEl = section.querySelector('[data-role="price"]');
+    var compareEl = section.querySelector('[data-role="compare"]');
+    var stockEl = section.querySelector('[data-role="stock"]');
+    var pvName = section.querySelector('[data-role="preview-name"]');
+    var pvVendor = section.querySelector('[data-role="preview-vendor"]');
+    var pvPrice = section.querySelector('[data-role="preview-price"]');
+    var pvWas = section.querySelector('[data-role="preview-was"]');
+    var pvStock = section.querySelector('[data-role="preview-stock"]');
+    if(pvName) pvName.textContent = (nameEl && nameEl.value.trim()) ? nameEl.value.trim() : 'New product';
+    if(pvVendor && vendorEl) pvVendor.textContent = vendorEl.value || '—';
+    if(pvPrice){
+      var p = priceEl ? parseFloat(priceEl.value) : NaN;
+      pvPrice.textContent = isFinite(p) ? ('$' + p.toFixed(2)) : '$0.00';
+    }
+    if(pvWas){
+      var c = compareEl ? parseFloat(compareEl.value) : NaN;
+      if(isFinite(c) && c > 0){ pvWas.textContent = '$' + c.toFixed(2); pvWas.style.display = ''; }
+      else { pvWas.style.display = 'none'; }
+    }
+    if(pvStock){
+      var s = stockEl ? parseFloat(stockEl.value) : NaN;
+      pvStock.textContent = (isFinite(s) && s > 0) ? 'In stock' : 'Out of stock';
+    }
+  }
+  function setCategoryMode(section, mode){
+    section.dataset.mode = mode;
+    section.querySelectorAll('[data-default]').forEach(function(el){
+      el.value = (mode === 'add') ? '' : el.dataset.default;
+    });
+    var thumbs = section.querySelector('.gallery-thumbs');
+    if(thumbs){
+      var target = (mode === 'edit') ? thumbs.dataset.defaultIcon : null;
+      thumbs.querySelectorAll('.t').forEach(function(t){ t.classList.toggle('on', t.dataset.icon === target); });
+    }
+    syncCategoryPreview(section);
+  }
+  function syncCategoryPreview(section){
+    var nameEl = section.querySelector('[data-role="name"]');
+    var pvName = section.querySelector('[data-role="preview-name"]');
+    var pvIcon = section.querySelector('[data-role="preview-icon"]');
+    var activeSwatch = section.querySelector('.gallery-thumbs .t.on');
+    if(pvName) pvName.textContent = (nameEl && nameEl.value.trim()) ? nameEl.value.trim() : 'New category';
+    if(pvIcon) pvIcon.setAttribute('href', '#' + (activeSwatch ? activeSwatch.dataset.icon : 'i-tag'));
+  }
+  document.addEventListener('click', function(e){
+    var swatch = e.target.closest('.gallery-thumbs .t');
+    if(!swatch) return;
+    swatch.closest('.gallery-thumbs').querySelectorAll('.t').forEach(function(t){ t.classList.toggle('on', t === swatch); });
+    var section = swatch.closest('.page');
+    if(section) syncCategoryPreview(section);
+  });
+  ['input','change'].forEach(function(evt){
+    document.addEventListener(evt, function(e){
+      if(!e.target.dataset || !e.target.dataset.role) return;
+      var section = e.target.closest('.page');
+      if(!section) return;
+      if(section.dataset.key === 'admin-category-edit') syncCategoryPreview(section);
+      else syncProductPreview(section);
+    });
+  });
+
+  (function(){
+    var modal = document.getElementById('confirm-modal');
+    var titleEl = document.getElementById('confirm-title');
+    var bodyEl = document.getElementById('confirm-body');
+    var okBtn = document.getElementById('confirm-ok');
+    var cancelBtn = document.getElementById('confirm-cancel');
+    var pending = null;
+    var copy = {
+      approve:   { title: function(v){ return 'Approve ' + v + '?'; },   body: 'This vendor will be marked Active and can start selling on ShopFlow immediately.' },
+      reinstate: { title: function(v){ return 'Reinstate ' + v + '?'; }, body: 'This vendor will be unsuspended and marked Active again.' },
+      suspend:   { title: function(v){ return 'Suspend ' + v + '?'; },   body: 'This vendor will be paused immediately and its listings hidden from the storefront.' },
+      block:     { title: function(v){ return 'Block ' + v + '?'; },     body: 'This customer will be blocked from placing new orders on ShopFlow.' },
+      unblock:   { title: function(v){ return 'Unblock ' + v + '?'; },   body: 'This customer will regain the ability to place orders on ShopFlow.' }
+    };
+    var destructiveActions = { suspend: true, block: true };
+    var rowTransition = {
+      approve:   { chip: 'Active',    chipClass: 'status-chip ok',   next: 'suspend',   nextLabel: 'Suspend',   view: '<button data-target="admin-vendor-detail">View</button>' },
+      reinstate: { chip: 'Active',    chipClass: 'status-chip ok',   next: 'suspend',   nextLabel: 'Suspend',   view: '<button data-target="admin-vendor-detail">View</button>' },
+      suspend:   { chip: 'Suspended', chipClass: 'status-chip fail', next: 'reinstate', nextLabel: 'Reinstate', view: '<button data-target="admin-vendor-detail">View</button>' },
+      block:     { chip: 'Blocked',   chipClass: 'status-chip fail', next: 'unblock',   nextLabel: 'Unblock',   view: '<button data-target="admin-customer-detail">View</button>' },
+      unblock:   { chip: 'Active',    chipClass: 'status-chip ok',   next: 'block',     nextLabel: 'Block',     view: '<button data-target="admin-customer-detail">View</button>' }
+    };
+    var detailTransition = {
+      suspend:   { label: 'Reinstate vendor',   next: 'reinstate', className: 'btn btn-primary btn-sm' },
+      reinstate: { label: 'Suspend vendor',     next: 'suspend',   className: 'btn btn-danger-outline btn-sm' },
+      block:     { label: 'Unblock customer',   next: 'unblock',   className: 'btn btn-primary btn-sm' },
+      unblock:   { label: 'Block customer',     next: 'block',     className: 'btn btn-danger-outline btn-sm' }
+    };
+    function close(){ modal.classList.remove('show'); pending = null; }
+    document.addEventListener('click', function(e){
+      var btn = e.target.closest('[data-confirm]');
+      if(!btn) return;
+      var c = copy[btn.dataset.confirm];
+      if(!c) return;
+      pending = btn;
+      titleEl.textContent = c.title(btn.dataset.subject);
+      bodyEl.textContent = c.body;
+      var destructive = !!destructiveActions[btn.dataset.confirm];
+      okBtn.textContent = destructive ? btn.textContent : 'Confirm';
+      okBtn.className = destructive ? 'btn btn-danger-outline btn-sm' : 'btn btn-accent btn-sm';
+      modal.classList.add('show');
+    });
+    cancelBtn.addEventListener('click', close);
+    modal.addEventListener('click', function(e){ if(e.target === modal) close(); });
+    okBtn.addEventListener('click', function(){
+      if(!pending) return;
+      var action = pending.dataset.confirm;
+      var subject = pending.dataset.subject;
+      var row = pending.closest('tr');
+      if(row){
+        var t = rowTransition[action];
+        if(t){
+          var chip = row.querySelector('.status-chip');
+          chip.textContent = t.chip;
+          chip.className = t.chipClass;
+          row.querySelector('.row-actions').innerHTML = t.view + '<button data-confirm="' + t.next + '" data-subject="' + subject + '">' + t.nextLabel + '</button>';
+        }
+      } else {
+        var d = detailTransition[action];
+        if(d){
+          pending.textContent = d.label;
+          pending.dataset.confirm = d.next;
+          pending.className = d.className;
+        }
+      }
+      close();
+    });
+  })();
+
+  (function(){
+    var openBtn = document.getElementById('invite-vendor-btn');
+    if(!openBtn) return;
+    var modal = document.getElementById('invite-modal');
+    var nameInput = document.getElementById('invite-name');
+    var emailInput = document.getElementById('invite-email');
+    var rateInput = document.getElementById('invite-rate');
+    var sendBtn = document.getElementById('invite-send');
+    var cancelBtn = document.getElementById('invite-cancel');
+    function close(){ modal.classList.remove('show'); }
+    openBtn.addEventListener('click', function(){ modal.classList.add('show'); nameInput.focus(); });
+    cancelBtn.addEventListener('click', close);
+    modal.addEventListener('click', function(e){ if(e.target === modal) close(); });
+    sendBtn.addEventListener('click', function(){
+      var name = nameInput.value.trim();
+      var email = emailInput.value.trim();
+      if(!name || !email) return;
+      var initials = name.split(/\s+/).map(function(w){ return w[0]; }).join('').slice(0,2).toUpperCase();
+      var tbody = document.querySelector('[data-key="admin-vendors"] .data-table tbody');
+      var row = document.createElement('tr');
+      row.innerHTML = '<td><div class="vendor-cell"><span class="ic">' + initials + '</span>' + name + '</div></td>' +
+        '<td>' + email + '</td>' +
+        '<td class="num">0</td><td class="num">0</td>' +
+        '<td><span class="status-chip pending">Invited</span></td>' +
+        '<td><div class="row-actions"><button disabled title="Awaiting vendor signup">Resend invite</button></div></td>';
+      tbody.appendChild(row);
+      nameInput.value = ''; emailInput.value = ''; rateInput.value = '';
+      close();
+    });
+  })();
+</script>
+
+
+
+
+
+
+

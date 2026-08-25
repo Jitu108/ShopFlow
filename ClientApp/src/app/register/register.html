@@ -1,41 +1,49 @@
-<mat-card class="auth-card">
-  <mat-card-header>
-    <mat-card-title>Register</mat-card-title>
-  </mat-card-header>
+<div class="auth-split">
+  <div class="auth-brand-panel">
+    <div class="brand-lockup">
+      <svg class="brand-logo-lg" viewBox="0 0 96 96" fill="none" stroke-linecap="round" aria-hidden="true">
+        <path d="M12 62c8-24 20-38 36-38s28 14 36 38" stroke="var(--auth-primary)" stroke-width="6" />
+        <path d="M20 74c6-18 15-28 28-28s22 10 28 28" stroke="var(--auth-accent)" stroke-width="5" opacity="0.6" />
+      </svg>
+      <div class="brand-lockup-text">ShopFlow</div>
+      <p class="brand-tagline">Everything you need, one marketplace.</p>
+    </div>
+  </div>
 
-  <mat-card-content>
-    <form [formGroup]="form" (ngSubmit)="submit()">
-      <mat-form-field appearance="outline">
-        <mat-label>Display name</mat-label>
-        <input matInput formControlName="displayName" autocomplete="name" />
-      </mat-form-field>
+  <div class="auth-divider"></div>
 
-      <mat-form-field appearance="outline">
-        <mat-label>Email</mat-label>
-        <input matInput type="email" formControlName="email" autocomplete="email" />
-      </mat-form-field>
+  <div class="auth-form-panel">
+    <div class="auth-form">
+      <h2>Create your account</h2>
+      <p class="sub">Join ShopFlow to shop across independent vendors.</p>
 
-      <mat-form-field appearance="outline">
-        <mat-label>Password</mat-label>
-        <input matInput type="password" formControlName="password" autocomplete="new-password" />
-        <mat-hint>Min 8 characters, with upper, lower, digit, and special character.</mat-hint>
-      </mat-form-field>
+      <form [formGroup]="form" (ngSubmit)="submit()">
+        <div class="field">
+          <label for="register-name">Display name</label>
+          <input id="register-name" formControlName="displayName" autocomplete="name" />
+        </div>
 
-      @if (error()) {
-        <p class="error">{{ error() }}</p>
-      }
+        <div class="field">
+          <label for="register-email">Email</label>
+          <input id="register-email" type="email" formControlName="email" autocomplete="email" />
+        </div>
 
-      <button mat-flat-button color="primary" type="submit" [disabled]="form.invalid || status() === 'loading'">
-        @if (status() === 'loading') {
-          <mat-spinner diameter="20"></mat-spinner>
-        } @else {
-          Register
+        <div class="field">
+          <label for="register-password">Password</label>
+          <input id="register-password" type="password" formControlName="password" autocomplete="new-password" />
+          <span class="hint">Min 8 characters, with upper, lower, digit, and special character.</span>
+        </div>
+
+        @if (error()) {
+          <p class="errtext">{{ error() }}</p>
         }
-      </button>
-    </form>
-  </mat-card-content>
 
-  <mat-card-actions>
-    <a routerLink="/login">Already have an account? Login</a>
-  </mat-card-actions>
-</mat-card>
+        <button type="submit" class="btn btn-primary btn-block" [disabled]="form.invalid || status() === 'loading'">
+          {{ status() === 'loading' ? 'Creating account…' : 'Register' }}
+        </button>
+      </form>
+
+      <div class="switch">Already have an account? <a routerLink="/login">Login</a></div>
+    </div>
+  </div>
+</div>

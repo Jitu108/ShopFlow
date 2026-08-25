@@ -1,38 +1,94 @@
-<mat-toolbar color="primary">
-  <span class="brand" routerLink="/">
-    <img src="images/shopping.svg" alt="" class="brand-logo" />
-    ShopFlow
-  </span>
-  <span class="spacer"></span>
-  <a mat-button routerLink="/customer/catalog" routerLinkActive="active">Catalog</a>
+<header class="site-header" [class.no-mega]="!user()">
+  <div class="wrap main-row">
+    <a class="brand" routerLink="/customer/catalog">
+      <svg class="brand-logo" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true">
+        <path d="M4 22c3-8 7-13 12-13s9 5 12 13" />
+      </svg>
+      <span class="brand-text">ShopFlow</span>
+    </a>
+
+    @if (showSearch()) {
+    <form class="searchbar" (submit)="$event.preventDefault(); submitSearch()">
+      <select aria-label="Search category" [value]="searchCategoryId()" (change)="searchCategoryId.set($any($event.target).value)">
+        <option value="">All categories</option>
+        @for (category of categories(); track category.id) {
+          <option [value]="category.id">{{ category.name }}</option>
+        }
+      </select>
+      <input
+        type="text"
+        placeholder="Search products…"
+        [value]="searchQuery()"
+        (input)="searchQuery.set($any($event.target).value)"
+      />
+      <button
+        type="button"
+        (click)="onSearchButtonClick()"
+        [attr.aria-label]="isSearchActive() ? 'Clear search' : 'Search'"
+      >
+        @if (isSearchActive()) {
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M6 6l12 12M18 6L6 18" />
+          </svg>
+        } @else {
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="7" />
+            <path d="M21 21l-4.3-4.3" />
+          </svg>
+        }
+      </button>
+    </form>
+    }
+
+    <div class="head-actions">
+      @if (user(); as u) {
+        @if (u.role === 'Customer') {
+          <a class="ico-btn" routerLink="/customer/cart" routerLinkActive="active" aria-label="Cart">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M2 3h2l2.6 12.2A2 2 0 0 0 8.5 17h9.1a2 2 0 0 0 1.9-1.4L21 7H6" />
+              <circle cx="9" cy="20" r="1.4" fill="currentColor" stroke="none" />
+              <circle cx="18" cy="20" r="1.4" fill="currentColor" stroke="none" />
+            </svg>
+            @if (cartCount() > 0) {
+              <span class="n">{{ cartCount() }}</span>
+            }
+          </a>
+        }
+
+        <span class="acct">
+          <span class="avatar">{{ initials(u.displayName) }}</span>
+          {{ u.displayName }}
+        </span>
+
+        <button class="logout-btn" type="button" (click)="logout()">Logout</button>
+      } @else {
+        <a class="text-link" routerLink="/customer/catalog" routerLinkActive="active">Catalog</a>
+        <a class="text-link" routerLink="/login" routerLinkActive="active">Login</a>
+        <a class="text-link" routerLink="/register" routerLinkActive="active">Register</a>
+      }
+    </div>
+  </div>
 
   @if (user(); as u) {
-    @if (u.role === 'Customer') {
-      <a
-        mat-button
-        routerLink="/customer/cart"
-        routerLinkActive="active"
-        [matBadge]="cartCount() > 0 ? cartCount() : null"
-        matBadgeColor="accent"
-        matBadgeSize="small"
-      >
-        Cart
-      </a>
-      <a mat-button routerLink="/customer/orders" routerLinkActive="active">Orders</a>
-    }
-    @if (u.role === 'Vendor') {
-      <a mat-button routerLink="/vendor/dashboard" routerLinkActive="active">Dashboard</a>
-      <a mat-button routerLink="/vendor/products" routerLinkActive="active">My Products</a>
-    }
-    @if (u.role === 'Admin') {
-      <a mat-button routerLink="/admin/users" routerLinkActive="active">Users</a>
-      <a mat-button routerLink="/admin/orders" routerLinkActive="active">Orders</a>
-      <a mat-button routerLink="/admin/categories" routerLinkActive="active">Categories</a>
-    }
-    <span class="user-chip">{{ u.displayName }}</span>
-    <button mat-button (click)="logout()">Logout</button>
-  } @else {
-    <a mat-button routerLink="/login" routerLinkActive="active">Login</a>
-    <a mat-button routerLink="/register" routerLinkActive="active">Register</a>
+    <nav class="mega-row">
+      <div class="wrap">
+        <div class="mega-links">
+          <a routerLink="/customer/catalog" routerLinkActive="active">Catalog</a>
+
+          @if (u.role === 'Customer') {
+            <a routerLink="/customer/orders" routerLinkActive="active">Orders</a>
+          }
+          @if (u.role === 'Vendor') {
+            <a routerLink="/vendor/dashboard" routerLinkActive="active">Dashboard</a>
+            <a routerLink="/vendor/products" routerLinkActive="active">My Products</a>
+          }
+          @if (u.role === 'Admin') {
+            <a routerLink="/admin/users" routerLinkActive="active">Users</a>
+            <a routerLink="/admin/orders" routerLinkActive="active">Orders</a>
+            <a routerLink="/admin/categories" routerLinkActive="active">Categories</a>
+          }
+        </div>
+      </div>
+    </nav>
   }
-</mat-toolbar>
+</header>
